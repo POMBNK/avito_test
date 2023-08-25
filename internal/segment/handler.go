@@ -31,7 +31,7 @@ type handler struct {
 func (h *handler) Register(r *httprouter.Router) {
 	r.HandlerFunc(http.MethodPost, segmentsURL, apierror.Middleware(h.CreateSegment))
 	r.HandlerFunc(http.MethodDelete, segmentsURL, apierror.Middleware(h.DeleteSegment))
-	r.HandlerFunc(http.MethodPost, usersToSegments, apierror.Middleware(h.AddUserToSegments))
+	r.HandlerFunc(http.MethodPut, usersToSegments, apierror.Middleware(h.AddUserToSegments))
 }
 
 func (h *handler) CreateSegment(w http.ResponseWriter, r *http.Request) error {
