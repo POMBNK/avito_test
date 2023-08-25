@@ -22,6 +22,7 @@ type postgresDB struct {
 // Active -> true means segment is active otherwise active -> false.
 func (d *postgresDB) Create(ctx context.Context, segment segment.Segment) (string, error) {
 	var pgErr *pgconn.PgError
+
 	d.logs.Debug("Check if segment already exist")
 	err := d.isSegmentExist(ctx, segment)
 	if err != nil {
@@ -33,11 +34,11 @@ func (d *postgresDB) Create(ctx context.Context, segment segment.Segment) (strin
 	}
 
 	d.logs.Debug("Creating segment")
-	q := `INSERT INTO segment (name, active) VALUES ($1,$2) RETURNING id`
+	q := `INSERT INTO segment (name, active) VALUES ($1,'1') RETURNING id`
 	ctx, cancel := context.WithTimeout(ctx, time.Second*5)
 	defer cancel()
 
-	err = d.client.QueryRow(ctx, q, segment.Name, segment.Active).Scan(&segment.ID)
+	err = d.client.QueryRow(ctx, q, segment.Name).Scan(&segment.ID)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return "", err

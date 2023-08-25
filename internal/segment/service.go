@@ -26,6 +26,7 @@ type service struct {
 func (s *service) Create(ctx context.Context, dto ToCreateSegmentDTO) (string, error) {
 	// for _,slug range:=slugs slice of dto
 	segmentUnit := CreateSegmentDto(dto)
+
 	id, err := s.storage.Create(ctx, segmentUnit)
 	if err != nil {
 		return "", err

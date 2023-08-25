@@ -2,7 +2,6 @@ package segment
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"github.com/POMBNK/avito_test_task/internal/apierror"
 	"github.com/POMBNK/avito_test_task/internal/handlers"
@@ -12,7 +11,8 @@ import (
 )
 
 const (
-	segmentURL = "/api/segments/"
+	segmentURL  = "/api/segments/:slug"
+	segmentsURL = "/api/segments/"
 )
 
 type Service interface {
@@ -31,14 +31,13 @@ func (h *handler) Register(r *httprouter.Router) {
 
 func (h *handler) CreateSegment(w http.ResponseWriter, r *http.Request) error {
 	h.logs.Info("Create segment")
-	w.Header().Set("Content-Type", "application/json")
 
 	var segmentDTO ToCreateSegmentDTO
 	defer r.Body.Close()
 	h.logs.Debug("mapping json to DTO")
-	if err := json.NewDecoder(r.Body).Decode(&segmentDTO); err != nil {
-		return fmt.Errorf("failled to decode body from json body due error:%w", err)
-	}
+	segmentName := r.URL.Path[len(segmentsURL):]
+	segmentDTO.Name = segmentName
+
 	segmentID, err := h.service.Create(r.Context(), segmentDTO)
 	if err != nil {
 		return err

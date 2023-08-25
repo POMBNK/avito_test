@@ -2,8 +2,7 @@ package segment
 
 // Data Transfer Object to transport using models
 type ToCreateSegmentDTO struct {
-	Name   string `json:"name"`
-	Active bool   `json:"active"`
+	Name string `json:"name"`
 }
 
 type ToDeleteSegmentDTO struct {
@@ -13,8 +12,7 @@ type ToDeleteSegmentDTO struct {
 // CreateSegmentDto map DTO fields to model
 func CreateSegmentDto(dto ToCreateSegmentDTO) Segment {
 	return Segment{
-		Name:   dto.Name,
-		Active: dto.Active,
+		Name: dto.Name,
 	}
 }
 
