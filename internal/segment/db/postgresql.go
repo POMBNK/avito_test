@@ -61,12 +61,23 @@ func (d *postgresDB) Delete(ctx context.Context, segment segment.Segment) error 
 	if err != nil {
 		return err
 	}
-
 	if res.RowsAffected() != 1 {
 		return apierror.ErrNotFound
 	}
 
-	d.logs.Tracef("Matched and deleted %v segments.\n", res.RowsAffected())
+	q = `UPDATE user_segment us
+			SET active = FALSE, del_at =now()
+			FROM segment s
+			WHERE us.segment_id = s.id
+  			AND us.active = TRUE
+  			AND s.name = $1;`
+	ctx, cancel = context.WithTimeout(ctx, time.Second*5)
+	defer cancel()
+	res, err = d.client.Exec(ctx, q, segment.Name)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
