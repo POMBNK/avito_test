@@ -36,6 +36,7 @@ func (s *service) Create(ctx context.Context, dto ToCreateSegmentDTO) (string, e
 
 func (s *service) Delete(ctx context.Context, dto ToDeleteSegmentDTO) error {
 	segmentUnit := DeleteSegmentDto(dto)
+
 	err := s.storage.Delete(ctx, segmentUnit)
 	if err != nil {
 		return err

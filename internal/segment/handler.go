@@ -27,14 +27,13 @@ type handler struct {
 
 func (h *handler) Register(r *httprouter.Router) {
 	r.HandlerFunc(http.MethodPost, segmentURL, apierror.Middleware(h.CreateSegment))
+	r.HandlerFunc(http.MethodDelete, segmentURL, apierror.Middleware(h.DeleteSegment))
 }
 
 func (h *handler) CreateSegment(w http.ResponseWriter, r *http.Request) error {
 	h.logs.Info("Create segment")
 
 	var segmentDTO ToCreateSegmentDTO
-	defer r.Body.Close()
-	h.logs.Debug("mapping json to DTO")
 	segmentName := r.URL.Path[len(segmentsURL):]
 	segmentDTO.Name = segmentName
 
@@ -45,6 +44,22 @@ func (h *handler) CreateSegment(w http.ResponseWriter, r *http.Request) error {
 
 	w.Header().Set("Location", fmt.Sprintf("%s/%s", segmentURL, segmentID))
 	w.WriteHeader(http.StatusCreated)
+	return nil
+}
+
+func (h *handler) DeleteSegment(w http.ResponseWriter, r *http.Request) error {
+	h.logs.Info("Delete segment")
+
+	var segmentDTO ToDeleteSegmentDTO
+	segmentName := r.URL.Path[len(segmentsURL):]
+	segmentDTO.Name = segmentName
+
+	err := h.service.Delete(r.Context(), segmentDTO)
+	if err != nil {
+		return err
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 	return nil
 }
 

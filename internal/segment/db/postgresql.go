@@ -8,7 +8,6 @@ import (
 	"github.com/POMBNK/avito_test_task/pkg/client/postgresql"
 	"github.com/POMBNK/avito_test_task/pkg/logger"
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgconn"
 	"time"
 )
 
@@ -21,35 +20,27 @@ type postgresDB struct {
 // Create a segment database entries with "name" of segment and "active" boolean flag.
 // Active -> true means segment is active otherwise active -> false.
 func (d *postgresDB) Create(ctx context.Context, segment segment.Segment) (string, error) {
-	var pgErr *pgconn.PgError
 
 	d.logs.Debug("Check if segment already exist")
-	err := d.isSegmentExist(ctx, segment)
+	existID, err := d.isSegmentExist(ctx, segment)
 	if err != nil {
-		if errors.As(err, &pgErr) {
-			return "", err
-		}
-		//TODO: Get correct error
-		return "", fmt.Errorf("this segment has already exist")
+		return "", err
 	}
 
-	d.logs.Debug("Creating segment")
-	q := `INSERT INTO segment (name, active) VALUES ($1,'1') RETURNING id`
-	ctx, cancel := context.WithTimeout(ctx, time.Second*5)
-	defer cancel()
-
-	err = d.client.QueryRow(ctx, q, segment.Name).Scan(&segment.ID)
-	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
+	if existID == "" {
+		newId, err := d.createSegment(ctx, segment)
+		if err != nil {
 			return "", err
 		}
-		return "", fmt.Errorf("can not create segment due error:%w", err)
+		return newId, nil
 	}
 
-	d.logs.Debug("Segment created")
-	d.logs.Tracef("id of created segment: %s \n", segment.ID)
+	err = d.makeSegmentActive(ctx, segment)
+	if err != nil {
+		return "", err
+	}
 
-	return segment.ID, nil
+	return existID, nil
 }
 
 // Delete method.
@@ -60,7 +51,7 @@ func (d *postgresDB) Create(ctx context.Context, segment segment.Segment) (strin
 func (d *postgresDB) Delete(ctx context.Context, segment segment.Segment) error {
 	d.logs.Debug("Removing segment...")
 
-	q := `UPDATE segment SET active=0 WHERE name = $1 `
+	q := `UPDATE segment SET active='0' WHERE name = $1 `
 	ctx, cancel := context.WithTimeout(ctx, time.Second*5)
 	defer cancel()
 	res, err := d.client.Exec(ctx, q, segment.Name)
@@ -76,7 +67,7 @@ func (d *postgresDB) Delete(ctx context.Context, segment segment.Segment) error 
 	return nil
 }
 
-func (d *postgresDB) isSegmentExist(ctx context.Context, segment segment.Segment) error {
+func (d *postgresDB) isSegmentExist(ctx context.Context, segment segment.Segment) (string, error) {
 	q := `SELECT id FROM segment WHERE name=$1`
 	ctx, cancel := context.WithTimeout(ctx, time.Second*5)
 	defer cancel()
@@ -84,10 +75,49 @@ func (d *postgresDB) isSegmentExist(ctx context.Context, segment segment.Segment
 	err := d.client.QueryRow(ctx, q, segment.Name).Scan(&segment.ID)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return nil
+			return "", nil
 		}
+		return "", err
+	}
+	return segment.ID, nil
+}
+
+func (d *postgresDB) createSegment(ctx context.Context, segment segment.Segment) (string, error) {
+	d.logs.Debug("Creating segment")
+	q := `INSERT INTO segment (name, active) VALUES ($1,'1') RETURNING id`
+	ctx, cancel := context.WithTimeout(ctx, time.Second*5)
+	defer cancel()
+
+	err := d.client.QueryRow(ctx, q, segment.Name).Scan(&segment.ID)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return "", err
+		}
+		return "", fmt.Errorf("can not create segment due error:%w", err)
+	}
+
+	d.logs.Debug("Segment created")
+	d.logs.Tracef("id of created segment: %s \n", segment.ID)
+
+	return segment.ID, nil
+}
+
+func (d *postgresDB) makeSegmentActive(ctx context.Context, segment segment.Segment) error {
+	d.logs.Debug("Update already existed segment...")
+	q := `UPDATE segment SET active='1' WHERE name = $1`
+
+	ctx, cancel := context.WithTimeout(ctx, time.Second*5)
+	defer cancel()
+	res, err := d.client.Exec(ctx, q, segment.Name)
+	if err != nil {
 		return err
 	}
+
+	if res.RowsAffected() != 1 {
+		return fmt.Errorf("not found 404") //TODO: apierror.ErrNotFound http code 404
+	}
+
+	d.logs.Tracef("Matched and updated %v segments.\n", res.RowsAffected())
 	return nil
 }
 
