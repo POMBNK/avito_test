@@ -20,7 +20,7 @@ const (
 type Service interface {
 	Create(ctx context.Context, dto ToCreateSegmentDTO) (string, error)
 	Delete(ctx context.Context, dto ToDeleteSegmentDTO) error
-	AddUserToSegments(ctx context.Context, dto ToUpdateUsersSegmentsDTO) error
+	EditUserToSegments(ctx context.Context, dto ToUpdateUsersSegmentsDTO) error
 }
 
 type handler struct {
@@ -31,7 +31,7 @@ type handler struct {
 func (h *handler) Register(r *httprouter.Router) {
 	r.HandlerFunc(http.MethodPost, segmentsURL, apierror.Middleware(h.CreateSegment))
 	r.HandlerFunc(http.MethodDelete, segmentsURL, apierror.Middleware(h.DeleteSegment))
-	r.HandlerFunc(http.MethodPut, usersToSegments, apierror.Middleware(h.AddUserToSegments))
+	r.HandlerFunc(http.MethodPut, usersToSegments, apierror.Middleware(h.EditUserSegments))
 }
 
 func (h *handler) CreateSegment(w http.ResponseWriter, r *http.Request) error {
@@ -76,7 +76,7 @@ func (h *handler) DeleteSegment(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
-func (h *handler) AddUserToSegments(w http.ResponseWriter, r *http.Request) error {
+func (h *handler) EditUserSegments(w http.ResponseWriter, r *http.Request) error {
 	h.logs.Info("Add segments to user")
 	w.Header().Set("Content-Type", "application/json")
 	//TODO: parse userID from URL or JSON?
@@ -89,7 +89,7 @@ func (h *handler) AddUserToSegments(w http.ResponseWriter, r *http.Request) erro
 		return fmt.Errorf("failled to decode body from json body due error:%w", err)
 	}
 
-	err := h.service.AddUserToSegments(r.Context(), segmentsDTO)
+	err := h.service.EditUserToSegments(r.Context(), segmentsDTO)
 	if err != nil {
 		return err
 	}

@@ -116,6 +116,32 @@ func (d *postgresDB) AddUserToSegments(ctx context.Context, segmentsUser segment
 	return nil
 }
 
+func (d *postgresDB) DeleteSegmentFromUser(ctx context.Context, segmentsUser segment.SegmentsUsers, segmentName string) error {
+	q := `UPDATE user_segment us
+			SET active = FALSE, del_at =now()
+			FROM segment s
+			WHERE us.segment_id = s.id
+  			AND us.active = TRUE
+  			AND us.user_id = $1
+  			AND s.name = $2;`
+
+	intUserID, err := strconv.Atoi(segmentsUser.UserID)
+	if err != nil {
+		return err
+	}
+
+	_, err = d.client.Exec(ctx, q, intUserID, segmentName)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return apierror.ErrNotFound
+		}
+
+		return err
+	}
+
+	return nil
+}
+
 func (d *postgresDB) IsUserExist(ctx context.Context, segmentsUser segment.SegmentsUsers) error {
 
 	var userUnit user.User

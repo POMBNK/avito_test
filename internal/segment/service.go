@@ -22,6 +22,10 @@ type Storage interface {
 	//Accepts a list of (names) of segments to add a user to
 	AddUserToSegments(ctx context.Context, segmentsUser SegmentsUsers, segmentName string) error
 
+	// DeleteSegmentFromUser Method for removing a user from segment.
+	//Accepts a list of (names) of segments to delete from user
+	DeleteSegmentFromUser(ctx context.Context, segmentsUser SegmentsUsers, segmentName string) error
+
 	//IsUserExist check if user already exist
 	IsUserExist(ctx context.Context, segmentsUser SegmentsUsers) error
 }
@@ -52,7 +56,7 @@ func (s *service) Delete(ctx context.Context, dto ToDeleteSegmentDTO) error {
 	return nil
 }
 
-func (s *service) AddUserToSegments(ctx context.Context, dto ToUpdateUsersSegmentsDTO) error {
+func (s *service) EditUserToSegments(ctx context.Context, dto ToUpdateUsersSegmentsDTO) error {
 	segmentUnit := UpdateUsersSegmentsDto(dto)
 	err := s.storage.IsUserExist(ctx, segmentUnit)
 	if err != nil {
@@ -66,6 +70,12 @@ func (s *service) AddUserToSegments(ctx context.Context, dto ToUpdateUsersSegmen
 		}
 	}
 
+	for _, segmentName := range segmentUnit.Delete {
+		err = s.storage.DeleteSegmentFromUser(ctx, segmentUnit, segmentName)
+		if err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
