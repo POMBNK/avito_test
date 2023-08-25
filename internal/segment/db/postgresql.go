@@ -10,6 +10,7 @@ import (
 	"github.com/POMBNK/avito_test_task/pkg/client/postgresql"
 	"github.com/POMBNK/avito_test_task/pkg/logger"
 	"github.com/jackc/pgx/v5"
+	"strconv"
 	"time"
 )
 
@@ -69,24 +70,35 @@ func (d *postgresDB) Delete(ctx context.Context, segment segment.Segment) error 
 	return nil
 }
 
+// AddUserToSegments Method for adding a user to a segment.
+// Accepts a list of (names) of segments to add a user to
 func (d *postgresDB) AddUserToSegments(ctx context.Context, segmentsUser segment.SegmentsUsers, segmentName string) error {
-	//TODO: Refactor to isSegmentExist method
+
 	existedSegment, err := d.isSegmentExist(ctx, segmentName)
 	if existedSegment == "" {
 		return apierror.ErrNotFound
 	}
-	fmt.Println(segmentsUser)
-	q := `INSERT INTO user_segment (segment_id,user_id,active)
-			SELECT id,$1,'1'
-			FROM segment WHERE name = $2`
+
+	intUserID, err := strconv.Atoi(segmentsUser.UserID)
+	if err != nil {
+		return err
+	}
+
+	q := fmt.Sprintf(`INSERT INTO user_segment(segment_id, user_id, ACTIVE)
+			WITH data AS (SELECT id AS segment_id, %d AS user_id, TRUE AS active FROM segment WHERE name = $1)
+			SELECT segment_id, user_id, active FROM data
+			WHERE NOT EXISTS (SELECT * FROM user_segment
+                  WHERE (user_id = (SELECT user_id from DATA) AND
+                         segment_id = (SELECT segment_id from DATA) AND
+                         active = TRUE))`, intUserID)
 	ctx, cancel := context.WithTimeout(ctx, time.Second*5)
 	defer cancel()
-	_, err = d.client.Exec(ctx, q, segmentsUser.UserID, segmentName)
+
+	_, err = d.client.Exec(ctx, q, segmentName)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return apierror.ErrNotFound
 		}
-		d.logs.Debug("unknown db error")
 		return err
 	}
 

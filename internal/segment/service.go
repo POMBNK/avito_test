@@ -10,6 +10,7 @@ type Storage interface {
 	// Create a segment database entries with "name" of segment and "active" boolean flag.
 	// Active -> true means segment is active otherwise active -> false.
 	Create(ctx context.Context, segment Segment) (string, error)
+
 	// Delete method.
 	// Update a segment field "active" to false (0).
 	// The field is not deleted from table:
@@ -17,8 +18,11 @@ type Storage interface {
 	//   - Save statistic data on future.
 	Delete(ctx context.Context, segment Segment) error
 
+	// AddUserToSegments Method for adding a user to a segment.
+	//Accepts a list of (names) of segments to add a user to
 	AddUserToSegments(ctx context.Context, segmentsUser SegmentsUsers, segmentName string) error
 
+	//IsUserExist check if user already exist
 	IsUserExist(ctx context.Context, segmentsUser SegmentsUsers) error
 }
 
@@ -28,14 +32,13 @@ type service struct {
 }
 
 func (s *service) Create(ctx context.Context, dto ToCreateSegmentDTO) (string, error) {
-	// for _,slug range:=slugs slice of dto
 	segmentUnit := CreateSegmentDto(dto)
 
-	id, err := s.storage.Create(ctx, segmentUnit)
+	ID, err := s.storage.Create(ctx, segmentUnit)
 	if err != nil {
 		return "", err
 	}
-	return id, nil
+	return ID, nil
 }
 
 func (s *service) Delete(ctx context.Context, dto ToDeleteSegmentDTO) error {
