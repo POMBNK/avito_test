@@ -12,15 +12,17 @@ import (
 )
 
 const (
-	segmentsURL     = "/api/segments"
-	usersToSegments = "/api/segments/"
-	id              = "user_id"
+	segmentsURL       = "/api/segments"
+	usersToSegments   = "/api/segments/"
+	id                = "user_id"
+	activeSegmentsURL = "/api/segments/:user_id"
 )
 
 type Service interface {
 	Create(ctx context.Context, dto ToCreateSegmentDTO) (string, error)
 	Delete(ctx context.Context, dto ToDeleteSegmentDTO) error
 	EditUserToSegments(ctx context.Context, dto ToUpdateUsersSegmentsDTO) error
+	GetActiveSegments(ctx context.Context, userID string) ([]ActiveSegments, error)
 }
 
 type handler struct {
@@ -32,6 +34,7 @@ func (h *handler) Register(r *httprouter.Router) {
 	r.HandlerFunc(http.MethodPost, segmentsURL, apierror.Middleware(h.CreateSegment))
 	r.HandlerFunc(http.MethodDelete, segmentsURL, apierror.Middleware(h.DeleteSegment))
 	r.HandlerFunc(http.MethodPut, usersToSegments, apierror.Middleware(h.EditUserSegments))
+	r.HandlerFunc(http.MethodGet, activeSegmentsURL, apierror.Middleware(h.GetActiveSegmentFromUser))
 }
 
 func (h *handler) CreateSegment(w http.ResponseWriter, r *http.Request) error {
@@ -96,6 +99,30 @@ func (h *handler) EditUserSegments(w http.ResponseWriter, r *http.Request) error
 
 	w.WriteHeader(http.StatusCreated)
 	return nil
+}
+
+func (h *handler) GetActiveSegmentFromUser(w http.ResponseWriter, r *http.Request) error {
+	h.logs.Info("Get active segments from user")
+	w.Header().Set("Content-Type", "application/json")
+
+	params := r.Context().Value(httprouter.ParamsKey).(httprouter.Params)
+	userID := params.ByName(id)
+
+	activeSegments, err := h.service.GetActiveSegments(r.Context(), userID)
+	if err != nil {
+		return err
+	}
+
+	activeSegmentsBytes, err := json.Marshal(activeSegments)
+	if err != nil {
+		return err
+	}
+
+	w.Write(activeSegmentsBytes)
+	w.WriteHeader(http.StatusOK)
+
+	return nil
+
 }
 
 func NewHandler(logs *logger.Logger, service Service) handlers.Handler {

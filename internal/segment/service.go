@@ -26,6 +26,9 @@ type Storage interface {
 	//Accepts a list of (names) of segments to delete from user
 	DeleteSegmentFromUser(ctx context.Context, segmentsUser SegmentsUsers, segmentName string) error
 
+	//GetActiveSegments Method to get active segments from all users
+	GetActiveSegments(ctx context.Context, userID string) ([]ActiveSegments, error)
+
 	//IsUserExist check if user already exist
 	IsUserExist(ctx context.Context, segmentsUser SegmentsUsers) error
 }
@@ -77,6 +80,15 @@ func (s *service) EditUserToSegments(ctx context.Context, dto ToUpdateUsersSegme
 		}
 	}
 	return nil
+}
+
+func (s *service) GetActiveSegments(ctx context.Context, userID string) ([]ActiveSegments, error) {
+	activeSegments, err := s.storage.GetActiveSegments(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	return activeSegments, err
 }
 
 func NewService(logs *logger.Logger, storage Storage) Service {

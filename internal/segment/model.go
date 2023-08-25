@@ -7,6 +7,11 @@ type Segment struct {
 	Active bool   `json:"active"`
 }
 
+type ActiveSegments struct {
+	ID   string `json:"ID"`
+	Name string `json:"name"`
+}
+
 type SegmentsUsers struct {
 	ID     string   `json:"ID"`
 	UserID string   `json:"userID"`

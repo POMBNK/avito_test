@@ -160,6 +160,38 @@ func (d *postgresDB) IsUserExist(ctx context.Context, segmentsUser segment.Segme
 	return nil
 }
 
+func (d *postgresDB) GetActiveSegments(ctx context.Context, userID string) ([]segment.ActiveSegments, error) {
+
+	q := `SELECT s.id, s.name
+		FROM segment s
+		INNER JOIN user_segment us ON us.segment_id = s.id
+		WHERE us.user_id = $1 AND us.active = TRUE AND s.active = TRUE`
+
+	intUserID, err := strconv.Atoi(userID)
+	if err != nil {
+		return nil, err
+	}
+	ctx, cancel := context.WithTimeout(ctx, time.Second*5)
+	defer cancel()
+	rows, err := d.client.Query(ctx, q, intUserID)
+
+	allActSegments := make([]segment.ActiveSegments, 0)
+	for rows.Next() {
+		var actSegment segment.ActiveSegments
+		err = rows.Scan(&actSegment.ID, &actSegment.Name)
+		if err != nil {
+			return nil, err
+		}
+		allActSegments = append(allActSegments, actSegment)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return allActSegments, nil
+}
+
 func (d *postgresDB) isSegmentExist(ctx context.Context, segmentName string) (string, error) {
 	var segmentUnit segment.Segment
 	q := `SELECT id FROM segment WHERE name=$1`
