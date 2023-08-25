@@ -4,7 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/POMBNK/avito_test_task/internal/apierror"
 	"github.com/POMBNK/avito_test_task/internal/segment"
+	"github.com/POMBNK/avito_test_task/internal/user"
 	"github.com/POMBNK/avito_test_task/pkg/client/postgresql"
 	"github.com/POMBNK/avito_test_task/pkg/logger"
 	"github.com/jackc/pgx/v5"
@@ -22,7 +24,7 @@ type postgresDB struct {
 func (d *postgresDB) Create(ctx context.Context, segment segment.Segment) (string, error) {
 
 	d.logs.Debug("Check if segment already exist")
-	existID, err := d.isSegmentExist(ctx, segment)
+	existID, err := d.isSegmentExist(ctx, segment.Name)
 	if err != nil {
 		return "", err
 	}
@@ -60,26 +62,69 @@ func (d *postgresDB) Delete(ctx context.Context, segment segment.Segment) error 
 	}
 
 	if res.RowsAffected() != 1 {
-		return fmt.Errorf("not found 404") //TODO: apierror.ErrNotFound http code 404
+		return apierror.ErrNotFound
 	}
 
 	d.logs.Tracef("Matched and deleted %v segments.\n", res.RowsAffected())
 	return nil
 }
 
-func (d *postgresDB) isSegmentExist(ctx context.Context, segment segment.Segment) (string, error) {
+func (d *postgresDB) AddUserToSegments(ctx context.Context, segmentsUser segment.SegmentsUsers, segmentName string) error {
+	//TODO: Refactor to isSegmentExist method
+	existedSegment, err := d.isSegmentExist(ctx, segmentName)
+	if existedSegment == "" {
+		return apierror.ErrNotFound
+	}
+	fmt.Println(segmentsUser)
+	q := `INSERT INTO user_segment (segment_id,user_id,active)
+			SELECT id,$1,'1'
+			FROM segment WHERE name = $2`
+	ctx, cancel := context.WithTimeout(ctx, time.Second*5)
+	defer cancel()
+	_, err = d.client.Exec(ctx, q, segmentsUser.UserID, segmentName)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return apierror.ErrNotFound
+		}
+		d.logs.Debug("unknown db error")
+		return err
+	}
+
+	return nil
+}
+
+func (d *postgresDB) IsUserExist(ctx context.Context, segmentsUser segment.SegmentsUsers) error {
+
+	var userUnit user.User
+	q := `SELECT name, email FROM users WHERE id=$1`
+	ctx, cancel := context.WithTimeout(ctx, time.Second*5)
+	defer cancel()
+
+	err := d.client.QueryRow(ctx, q, segmentsUser.UserID).Scan(&userUnit.Name, &userUnit.Email)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			d.logs.Debug("User id doesn't exist")
+			return apierror.ErrNotFound
+		}
+		return err
+	}
+	return nil
+}
+
+func (d *postgresDB) isSegmentExist(ctx context.Context, segmentName string) (string, error) {
+	var segmentUnit segment.Segment
 	q := `SELECT id FROM segment WHERE name=$1`
 	ctx, cancel := context.WithTimeout(ctx, time.Second*5)
 	defer cancel()
 
-	err := d.client.QueryRow(ctx, q, segment.Name).Scan(&segment.ID)
+	err := d.client.QueryRow(ctx, q, segmentName).Scan(&segmentUnit.ID)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return "", nil
 		}
 		return "", err
 	}
-	return segment.ID, nil
+	return segmentUnit.ID, nil
 }
 
 func (d *postgresDB) createSegment(ctx context.Context, segment segment.Segment) (string, error) {
@@ -91,7 +136,7 @@ func (d *postgresDB) createSegment(ctx context.Context, segment segment.Segment)
 	err := d.client.QueryRow(ctx, q, segment.Name).Scan(&segment.ID)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return "", err
+			return "", apierror.ErrNotFound
 		}
 		return "", fmt.Errorf("can not create segment due error:%w", err)
 	}
@@ -114,7 +159,7 @@ func (d *postgresDB) makeSegmentActive(ctx context.Context, segment segment.Segm
 	}
 
 	if res.RowsAffected() != 1 {
-		return fmt.Errorf("not found 404") //TODO: apierror.ErrNotFound http code 404
+		return apierror.ErrNotFound
 	}
 
 	d.logs.Tracef("Matched and updated %v segments.\n", res.RowsAffected())

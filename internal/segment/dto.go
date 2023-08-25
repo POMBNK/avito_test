@@ -9,6 +9,12 @@ type ToDeleteSegmentDTO struct {
 	Name string `json:"name"`
 }
 
+type ToUpdateUsersSegmentsDTO struct {
+	UserID string   `json:"userID"`
+	Add    []string `json:"add"`
+	Delete []string `json:"delete"`
+}
+
 // CreateSegmentDto map DTO fields to model
 func CreateSegmentDto(dto ToCreateSegmentDTO) Segment {
 	return Segment{
@@ -20,5 +26,13 @@ func CreateSegmentDto(dto ToCreateSegmentDTO) Segment {
 func DeleteSegmentDto(dto ToDeleteSegmentDTO) Segment {
 	return Segment{
 		Name: dto.Name,
+	}
+}
+
+func UpdateUsersSegmentsDto(dto ToUpdateUsersSegmentsDTO) SegmentsUsers {
+	return SegmentsUsers{
+		UserID: dto.UserID,
+		Add:    dto.Add,
+		Delete: dto.Delete,
 	}
 }

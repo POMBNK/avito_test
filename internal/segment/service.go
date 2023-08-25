@@ -16,6 +16,10 @@ type Storage interface {
 	//   - Not to corrupt the data in the user entity;
 	//   - Save statistic data on future.
 	Delete(ctx context.Context, segment Segment) error
+
+	AddUserToSegments(ctx context.Context, segmentsUser SegmentsUsers, segmentName string) error
+
+	IsUserExist(ctx context.Context, segmentsUser SegmentsUsers) error
 }
 
 type service struct {
@@ -40,6 +44,23 @@ func (s *service) Delete(ctx context.Context, dto ToDeleteSegmentDTO) error {
 	err := s.storage.Delete(ctx, segmentUnit)
 	if err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func (s *service) AddUserToSegments(ctx context.Context, dto ToUpdateUsersSegmentsDTO) error {
+	segmentUnit := UpdateUsersSegmentsDto(dto)
+	err := s.storage.IsUserExist(ctx, segmentUnit)
+	if err != nil {
+		return err
+	}
+
+	for _, segmentName := range segmentUnit.Add {
+		err = s.storage.AddUserToSegments(ctx, segmentUnit, segmentName)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
