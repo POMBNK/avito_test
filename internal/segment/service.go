@@ -2,8 +2,18 @@ package segment
 
 import (
 	"context"
+	"fmt"
 	"github.com/POMBNK/avito_test_task/pkg/logger"
+	"github.com/POMBNK/avito_test_task/pkg/utils"
+	"github.com/jszwec/csvutil"
+	"os"
+	"path/filepath"
+	"strconv"
+	"strings"
+	"time"
 )
+
+const reportPath = "reports/csv/"
 
 type Storage interface {
 	// Create method.
@@ -31,6 +41,8 @@ type Storage interface {
 
 	//IsUserExist check if user already exist
 	IsUserExist(ctx context.Context, segmentsUser SegmentsUsers) error
+
+	GetUserHistoryOptimized(ctx context.Context, userID, timestampz string) ([]BetterCSVReport, error)
 }
 
 type service struct {
@@ -89,6 +101,54 @@ func (s *service) GetActiveSegments(ctx context.Context, userID string) ([]Activ
 	}
 
 	return activeSegments, err
+}
+
+func (s *service) GetUserHistoryOptimized(ctx context.Context, userID string, dto ReportDateDTO) (string, error) {
+	intYear, err := strconv.Atoi(dto.Year)
+	if err != nil {
+		return "", err
+	}
+	timestampz, err := utils.MapToTimestampz(dto.Month, intYear)
+
+	reports, err := s.storage.GetUserHistoryOptimized(ctx, userID, timestampz)
+	if err != nil {
+		return "", err
+	}
+	if len(reports) == 0 {
+		return "", fmt.Errorf("empty report")
+	}
+
+	link, err := prepareCSVReport(reports, userID)
+	if err != nil {
+		return "", err
+	}
+
+	return link, nil
+}
+
+func prepareCSVReport(reports []BetterCSVReport, userID string) (string, error) {
+	b, err := csvutil.Marshal(reports)
+	if err != nil {
+		return "", err
+	}
+
+	createdAt := strings.ReplaceAll(time.Now().Format(time.Stamp), " ", "_")
+	fileName := fmt.Sprintf("report_userID_%s_%s.csv\n", userID, createdAt)
+	err = os.MkdirAll(reportPath, 0744)
+	if err != nil && os.IsExist(err) {
+		return "", err
+	}
+	err = os.WriteFile(reportPath+fileName, b, 0744)
+	if err != nil {
+		return "", err
+	}
+
+	absPath, err := filepath.Abs(reportPath + fileName)
+	if err != nil {
+		return "", err
+	}
+
+	return absPath, nil
 }
 
 func NewService(logs *logger.Logger, storage Storage) Service {

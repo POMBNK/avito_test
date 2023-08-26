@@ -39,6 +39,7 @@ require (
 	github.com/jessevdk/go-flags v1.5.0 // indirect
 	github.com/joho/godotenv v1.5.1 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
+	github.com/jszwec/csvutil v1.8.0 // indirect
 	github.com/julienschmidt/httprouter v1.3.0 // indirect
 	github.com/kr/pretty v0.3.1 // indirect
 	github.com/kr/text v0.2.0 // indirect

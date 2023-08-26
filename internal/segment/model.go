@@ -1,5 +1,7 @@
 package segment
 
+import "time"
+
 // Segment is a struct of segment model.
 type Segment struct {
 	ID     string `json:"ID"`
@@ -17,4 +19,12 @@ type SegmentsUsers struct {
 	UserID string   `json:"userID"`
 	Add    []string `json:"add"`
 	Delete []string `json:"delete"`
+}
+
+type BetterCSVReport struct {
+	UserID      string
+	SegmentName string
+	Active      bool
+	CreatedAt   time.Time
+	DeletedAt   interface{}
 }

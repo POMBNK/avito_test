@@ -15,6 +15,11 @@ type ToUpdateUsersSegmentsDTO struct {
 	Delete []string `json:"delete"`
 }
 
+type ReportDateDTO struct {
+	Month string `json:"month"`
+	Year  string `json:"year"`
+}
+
 // CreateSegmentDto map DTO fields to model
 func CreateSegmentDto(dto ToCreateSegmentDTO) Segment {
 	return Segment{
