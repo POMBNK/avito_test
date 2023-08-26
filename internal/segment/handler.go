@@ -17,6 +17,7 @@ const (
 	id                = "user_id"
 	activeSegmentsURL = "/api/segments/:user_id"
 	csvReport         = "/api/reports/:user_id"
+	csvReportOriginal = "/api/original_reports/:user_id"
 )
 
 type Service interface {
@@ -25,6 +26,7 @@ type Service interface {
 	EditUserToSegments(ctx context.Context, dto ToUpdateUsersSegmentsDTO) error
 	GetActiveSegments(ctx context.Context, userID string) ([]ActiveSegments, error)
 	GetUserHistoryOptimized(ctx context.Context, userID string, dto ReportDateDTO) (string, error)
+	GetUserHistoryOriginal(ctx context.Context, userID string, dto ReportDateDTO) (string, error)
 }
 
 type handler struct {
@@ -38,6 +40,7 @@ func (h *handler) Register(r *httprouter.Router) {
 	r.HandlerFunc(http.MethodPut, usersToSegments, apierror.Middleware(h.EditUserSegments))
 	r.HandlerFunc(http.MethodGet, activeSegmentsURL, apierror.Middleware(h.GetActiveSegmentFromUser))
 	r.HandlerFunc(http.MethodPost, csvReport, apierror.Middleware(h.GetCSVReport))
+	r.HandlerFunc(http.MethodPost, csvReportOriginal, apierror.Middleware(h.GetOriginalCSVReport))
 }
 
 func (h *handler) CreateSegment(w http.ResponseWriter, r *http.Request) error {
@@ -143,6 +146,30 @@ func (h *handler) GetCSVReport(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	reportLink, err := h.service.GetUserHistoryOptimized(r.Context(), userID, dateDTO)
+	if err != nil {
+		return err
+	}
+
+	w.Write([]byte(reportLink))
+
+	return nil
+}
+
+func (h *handler) GetOriginalCSVReport(w http.ResponseWriter, r *http.Request) error {
+	h.logs.Info("Get CSV report")
+	w.Header().Set("Content-Type", "application/json")
+
+	params := r.Context().Value(httprouter.ParamsKey).(httprouter.Params)
+	userID := params.ByName(id)
+
+	var dateDTO ReportDateDTO
+	defer r.Body.Close()
+	h.logs.Debug("mapping json to DTO")
+	if err := json.NewDecoder(r.Body).Decode(&dateDTO); err != nil {
+		return fmt.Errorf("failled to decode body from json body due error:%w", err)
+	}
+
+	reportLink, err := h.service.GetUserHistoryOriginal(r.Context(), userID, dateDTO)
 	if err != nil {
 		return err
 	}

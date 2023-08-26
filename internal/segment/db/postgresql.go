@@ -230,6 +230,50 @@ func (d *postgresDB) GetUserHistoryOptimized(ctx context.Context, userID, timest
 	return reports, nil
 }
 
+func (d *postgresDB) GetUserHistoryOriginal(ctx context.Context, userID string, timestampz string) ([]segment.CSVReport, error) {
+	q := `SELECT us.user_id, s.name,'created' as action,us.crt_at AS date
+		FROM user_segment us
+    	JOIN segment s ON s.id = us.segment_id
+    	JOIN users u ON u.id = us.user_id
+		WHERE u.id = $1
+  		AND  us.crt_at >= $2
+		UNION ALL
+		SELECT us.user_id, s.name,'deleted' as action,us.del_at as date
+		FROM user_segment us
+		JOIN segment s ON s.id = us.segment_id
+    	JOIN users u on u.id = us.user_id
+		WHERE u.id = $1
+  		AND us.active=FALSE
+  		AND NOW() >= del_at
+		ORDER BY date;`
+
+	intUserID, err := strconv.Atoi(userID)
+	if err != nil {
+		return nil, err
+	}
+
+	ctx, cancel := context.WithTimeout(ctx, time.Second*5)
+	defer cancel()
+
+	rows, err := d.client.Query(ctx, q, intUserID, timestampz)
+
+	reports := make([]segment.CSVReport, 0)
+	for rows.Next() {
+		var report segment.CSVReport
+		err = rows.Scan(&report.UserID, &report.SegmentName, &report.Action, &report.Date)
+		if err != nil {
+			return nil, err
+		}
+		reports = append(reports, report)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return reports, nil
+}
+
 func (d *postgresDB) isSegmentExist(ctx context.Context, segmentName string) (string, error) {
 	var segmentUnit segment.Segment
 	q := `SELECT id FROM segment WHERE name=$1`

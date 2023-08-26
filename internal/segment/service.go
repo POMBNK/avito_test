@@ -43,6 +43,8 @@ type Storage interface {
 	IsUserExist(ctx context.Context, segmentsUser SegmentsUsers) error
 
 	GetUserHistoryOptimized(ctx context.Context, userID, timestampz string) ([]BetterCSVReport, error)
+
+	GetUserHistoryOriginal(ctx context.Context, userID string, timestampz string) ([]CSVReport, error)
 }
 
 type service struct {
@@ -126,14 +128,62 @@ func (s *service) GetUserHistoryOptimized(ctx context.Context, userID string, dt
 	return link, nil
 }
 
+func (s *service) GetUserHistoryOriginal(ctx context.Context, userID string, dto ReportDateDTO) (string, error) {
+	intYear, err := strconv.Atoi(dto.Year)
+	if err != nil {
+		return "", err
+	}
+	timestampz, err := utils.MapToTimestampz(dto.Month, intYear)
+
+	reports, err := s.storage.GetUserHistoryOriginal(ctx, userID, timestampz)
+	if err != nil {
+		return "", err
+	}
+	if len(reports) == 0 {
+		return "", fmt.Errorf("empty report")
+	}
+
+	link, err := prepareOriginalCSVReports(reports, userID)
+	if err != nil {
+		return "", err
+	}
+
+	return link, nil
+}
+
 func prepareCSVReport(reports []BetterCSVReport, userID string) (string, error) {
 	b, err := csvutil.Marshal(reports)
 	if err != nil {
 		return "", err
 	}
 
-	createdAt := strings.ReplaceAll(time.Now().Format(time.Stamp), " ", "_")
-	fileName := fmt.Sprintf("report_userID_%s_%s.csv\n", userID, createdAt)
+	createdAt := strings.ReplaceAll(strings.ReplaceAll(time.Now().Format(time.Stamp), " ", "_"), ":", "_")
+	fileName := fmt.Sprintf("report_userID_%s_%s.csv", userID, createdAt)
+	err = os.MkdirAll(reportPath, 0744)
+	if err != nil && os.IsExist(err) {
+		return "", err
+	}
+	err = os.WriteFile(reportPath+fileName, b, 0744)
+	if err != nil {
+		return "", err
+	}
+
+	absPath, err := filepath.Abs(reportPath + fileName)
+	if err != nil {
+		return "", err
+	}
+
+	return absPath, nil
+}
+
+func prepareOriginalCSVReports(reports []CSVReport, userID string) (string, error) {
+	b, err := csvutil.Marshal(reports)
+	if err != nil {
+		return "", err
+	}
+
+	createdAt := strings.ReplaceAll(strings.ReplaceAll(time.Now().Format(time.Stamp), " ", "_"), ":", "_")
+	fileName := fmt.Sprintf("report_userID_%s_%s.csv", userID, createdAt)
 	err = os.MkdirAll(reportPath, 0744)
 	if err != nil && os.IsExist(err) {
 		return "", err
