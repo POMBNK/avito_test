@@ -1,4 +1,4 @@
-package segment
+package http
 
 import (
 	"context"
@@ -7,6 +7,7 @@ import (
 	_ "github.com/POMBNK/avito_test_task/docs"
 	"github.com/POMBNK/avito_test_task/internal/apierror"
 	"github.com/POMBNK/avito_test_task/internal/handlers"
+	"github.com/POMBNK/avito_test_task/internal/segment"
 	"github.com/POMBNK/avito_test_task/pkg/logger"
 	"github.com/julienschmidt/httprouter"
 	httpSwagger "github.com/swaggo/http-swagger"
@@ -24,12 +25,12 @@ const (
 )
 
 type Service interface {
-	Create(ctx context.Context, dto ToCreateSegmentDTO) (string, error)
-	Delete(ctx context.Context, dto ToDeleteSegmentDTO) error
-	EditUserToSegments(ctx context.Context, dto ToUpdateUsersSegmentsDTO) error
-	GetActiveSegments(ctx context.Context, userID string) ([]ActiveSegments, error)
-	GetUserHistoryOptimized(ctx context.Context, userID string, dto ReportDateDTO) (string, error)
-	GetUserHistoryOriginal(ctx context.Context, userID string, dto ReportDateDTO) (string, error)
+	Create(ctx context.Context, dto segment.ToCreateSegmentDTO) (string, error)
+	Delete(ctx context.Context, dto segment.ToDeleteSegmentDTO) error
+	EditUserToSegments(ctx context.Context, dto segment.ToUpdateUsersSegmentsDTO) error
+	GetActiveSegments(ctx context.Context, userID string) ([]segment.ActiveSegments, error)
+	GetUserHistoryOptimized(ctx context.Context, userID string, dto segment.ReportDateDTO) (string, error)
+	GetUserHistoryOriginal(ctx context.Context, userID string, dto segment.ReportDateDTO) (string, error)
 }
 
 type handler struct {
@@ -64,7 +65,7 @@ func (h *handler) CreateSegment(w http.ResponseWriter, r *http.Request) error {
 
 	w.Header().Set("Content-Type", "application/json")
 
-	var segmentDTO ToCreateSegmentDTO
+	var segmentDTO segment.ToCreateSegmentDTO
 	defer r.Body.Close()
 	h.logs.Debug("mapping json to DTO")
 	if err := json.NewDecoder(r.Body).Decode(&segmentDTO); err != nil {
@@ -97,7 +98,7 @@ func (h *handler) DeleteSegment(w http.ResponseWriter, r *http.Request) error {
 	h.logs.Info("Delete segment")
 	w.Header().Set("Content-Type", "application/json")
 
-	var segmentDTO ToDeleteSegmentDTO
+	var segmentDTO segment.ToDeleteSegmentDTO
 	defer r.Body.Close()
 	h.logs.Debug("mapping json to DTO")
 	if err := json.NewDecoder(r.Body).Decode(&segmentDTO); err != nil {
@@ -132,7 +133,7 @@ func (h *handler) EditUserSegments(w http.ResponseWriter, r *http.Request) error
 	//params := r.Context().Value(httprouter.ParamsKey).(httprouter.Params)
 	//userID := params.ByName(id)
 
-	var segmentsDTO ToUpdateUsersSegmentsDTO
+	var segmentsDTO segment.ToUpdateUsersSegmentsDTO
 	defer r.Body.Close()
 	if err := json.NewDecoder(r.Body).Decode(&segmentsDTO); err != nil {
 		return fmt.Errorf("failled to decode body from json body due error:%w", err)
@@ -204,7 +205,7 @@ func (h *handler) GetCSVReport(w http.ResponseWriter, r *http.Request) error {
 	params := r.Context().Value(httprouter.ParamsKey).(httprouter.Params)
 	userID := params.ByName(id)
 
-	var dateDTO ReportDateDTO
+	var dateDTO segment.ReportDateDTO
 	defer r.Body.Close()
 	h.logs.Debug("mapping json to DTO")
 	if err := json.NewDecoder(r.Body).Decode(&dateDTO); err != nil {
@@ -242,7 +243,7 @@ func (h *handler) GetOriginalCSVReport(w http.ResponseWriter, r *http.Request) e
 	params := r.Context().Value(httprouter.ParamsKey).(httprouter.Params)
 	userID := params.ByName(id)
 
-	var dateDTO ReportDateDTO
+	var dateDTO segment.ReportDateDTO
 	defer r.Body.Close()
 	h.logs.Debug("mapping json to DTO")
 	if err := json.NewDecoder(r.Body).Decode(&dateDTO); err != nil {

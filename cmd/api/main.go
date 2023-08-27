@@ -3,8 +3,9 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/POMBNK/avito_test_task/internal/segment"
-	"github.com/POMBNK/avito_test_task/internal/segment/db"
+	segmentHttp "github.com/POMBNK/avito_test_task/internal/segment/delivery/http"
+	segmentRepository "github.com/POMBNK/avito_test_task/internal/segment/repository"
+	segmentUseCase "github.com/POMBNK/avito_test_task/internal/segment/useCase"
 	"github.com/POMBNK/avito_test_task/pkg/client/postgresql"
 	"github.com/POMBNK/avito_test_task/pkg/config"
 	"github.com/POMBNK/avito_test_task/pkg/logger"
@@ -39,9 +40,9 @@ func main() {
 	logs.Println("Router initialization...")
 	router := httprouter.New()
 	logs.Println("Router initialized.")
-	segmentStorage := db.NewPostgresDB(logs, client)
-	segmentService := segment.NewService(logs, segmentStorage)
-	segmentHandler := segment.NewHandler(logs, segmentService)
+	segmentStorage := segmentRepository.NewPostgresDB(logs, client)
+	segmentService := segmentUseCase.NewService(logs, segmentStorage)
+	segmentHandler := segmentHttp.NewHandler(logs, segmentService)
 	segmentHandler.Register(router)
 
 	start(logs, router, cfg)

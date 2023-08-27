@@ -1,4 +1,4 @@
-package db
+package repository
 
 import (
 	"context"
@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/POMBNK/avito_test_task/internal/apierror"
 	"github.com/POMBNK/avito_test_task/internal/segment"
+	"github.com/POMBNK/avito_test_task/internal/segment/useCase"
 	"github.com/POMBNK/avito_test_task/internal/user"
 	"github.com/POMBNK/avito_test_task/pkg/client/postgresql"
 	"github.com/POMBNK/avito_test_task/pkg/logger"
@@ -329,7 +330,7 @@ func (d *postgresDB) makeSegmentActive(ctx context.Context, segment segment.Segm
 	return nil
 }
 
-func NewPostgresDB(logs *logger.Logger, client postgresql.Client) segment.Storage {
+func NewPostgresDB(logs *logger.Logger, client postgresql.Client) useCase.Storage {
 	return &postgresDB{
 		logs:   logs,
 		client: client,

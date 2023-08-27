@@ -1,8 +1,10 @@
-package segment
+package useCase
 
 import (
 	"context"
 	"fmt"
+	"github.com/POMBNK/avito_test_task/internal/segment"
+	"github.com/POMBNK/avito_test_task/internal/segment/delivery/http"
 	"github.com/POMBNK/avito_test_task/pkg/logger"
 	"github.com/POMBNK/avito_test_task/pkg/utils"
 	"github.com/jszwec/csvutil"
@@ -15,36 +17,37 @@ import (
 
 const reportPath = "reports/csv/"
 
+//go:generate go run github.com/vektra/mockery/v2@v2.33.0 --name Storage
 type Storage interface {
 	// Create method.
 	// Create a segment database entries with "name" of segment and "active" boolean flag.
 	// Active -> true means segment is active otherwise active -> false.
-	Create(ctx context.Context, segment Segment) (string, error)
+	Create(ctx context.Context, segment segment.Segment) (string, error)
 
 	// Delete method.
 	// Update a segment field "active" to false (0).
 	// The field is not deleted from table:
 	//   - Not to corrupt the data in the user entity;
 	//   - Save statistic data on future.
-	Delete(ctx context.Context, segment Segment) error
+	Delete(ctx context.Context, segment segment.Segment) error
 
 	// AddUserToSegments Method for adding a user to a segment.
 	//Accepts a list of (names) of segments to add a user to
-	AddUserToSegments(ctx context.Context, segmentsUser SegmentsUsers, segmentName string) error
+	AddUserToSegments(ctx context.Context, segmentsUser segment.SegmentsUsers, segmentName string) error
 
 	// DeleteSegmentFromUser Method for removing a user from segment.
 	//Accepts a list of (names) of segments to delete from user
-	DeleteSegmentFromUser(ctx context.Context, segmentsUser SegmentsUsers, segmentName string) error
+	DeleteSegmentFromUser(ctx context.Context, segmentsUser segment.SegmentsUsers, segmentName string) error
 
 	//GetActiveSegments Method to get active segments from all users
-	GetActiveSegments(ctx context.Context, userID string) ([]ActiveSegments, error)
+	GetActiveSegments(ctx context.Context, userID string) ([]segment.ActiveSegments, error)
 
 	//IsUserExist check if user already exist
-	IsUserExist(ctx context.Context, segmentsUser SegmentsUsers) error
+	IsUserExist(ctx context.Context, segmentsUser segment.SegmentsUsers) error
 
-	GetUserHistoryOptimized(ctx context.Context, userID, timestampz string) ([]BetterCSVReport, error)
+	GetUserHistoryOptimized(ctx context.Context, userID, timestampz string) ([]segment.BetterCSVReport, error)
 
-	GetUserHistoryOriginal(ctx context.Context, userID string, timestampz string) ([]CSVReport, error)
+	GetUserHistoryOriginal(ctx context.Context, userID string, timestampz string) ([]segment.CSVReport, error)
 }
 
 type service struct {
@@ -52,8 +55,8 @@ type service struct {
 	storage Storage
 }
 
-func (s *service) Create(ctx context.Context, dto ToCreateSegmentDTO) (string, error) {
-	segmentUnit := CreateSegmentDto(dto)
+func (s *service) Create(ctx context.Context, dto segment.ToCreateSegmentDTO) (string, error) {
+	segmentUnit := segment.CreateSegmentDto(dto)
 
 	ID, err := s.storage.Create(ctx, segmentUnit)
 	if err != nil {
@@ -62,8 +65,8 @@ func (s *service) Create(ctx context.Context, dto ToCreateSegmentDTO) (string, e
 	return ID, nil
 }
 
-func (s *service) Delete(ctx context.Context, dto ToDeleteSegmentDTO) error {
-	segmentUnit := DeleteSegmentDto(dto)
+func (s *service) Delete(ctx context.Context, dto segment.ToDeleteSegmentDTO) error {
+	segmentUnit := segment.DeleteSegmentDto(dto)
 
 	err := s.storage.Delete(ctx, segmentUnit)
 	if err != nil {
@@ -73,8 +76,8 @@ func (s *service) Delete(ctx context.Context, dto ToDeleteSegmentDTO) error {
 	return nil
 }
 
-func (s *service) EditUserToSegments(ctx context.Context, dto ToUpdateUsersSegmentsDTO) error {
-	segmentUnit := UpdateUsersSegmentsDto(dto)
+func (s *service) EditUserToSegments(ctx context.Context, dto segment.ToUpdateUsersSegmentsDTO) error {
+	segmentUnit := segment.UpdateUsersSegmentsDto(dto)
 	err := s.storage.IsUserExist(ctx, segmentUnit)
 	if err != nil {
 		return err
@@ -96,7 +99,7 @@ func (s *service) EditUserToSegments(ctx context.Context, dto ToUpdateUsersSegme
 	return nil
 }
 
-func (s *service) GetActiveSegments(ctx context.Context, userID string) ([]ActiveSegments, error) {
+func (s *service) GetActiveSegments(ctx context.Context, userID string) ([]segment.ActiveSegments, error) {
 	activeSegments, err := s.storage.GetActiveSegments(ctx, userID)
 	if err != nil {
 		return nil, err
@@ -105,7 +108,7 @@ func (s *service) GetActiveSegments(ctx context.Context, userID string) ([]Activ
 	return activeSegments, err
 }
 
-func (s *service) GetUserHistoryOptimized(ctx context.Context, userID string, dto ReportDateDTO) (string, error) {
+func (s *service) GetUserHistoryOptimized(ctx context.Context, userID string, dto segment.ReportDateDTO) (string, error) {
 	intYear, err := strconv.Atoi(dto.Year)
 	if err != nil {
 		return "", err
@@ -128,7 +131,7 @@ func (s *service) GetUserHistoryOptimized(ctx context.Context, userID string, dt
 	return link, nil
 }
 
-func (s *service) GetUserHistoryOriginal(ctx context.Context, userID string, dto ReportDateDTO) (string, error) {
+func (s *service) GetUserHistoryOriginal(ctx context.Context, userID string, dto segment.ReportDateDTO) (string, error) {
 	intYear, err := strconv.Atoi(dto.Year)
 	if err != nil {
 		return "", err
@@ -151,7 +154,7 @@ func (s *service) GetUserHistoryOriginal(ctx context.Context, userID string, dto
 	return link, nil
 }
 
-func prepareCSVReport(reports []BetterCSVReport, userID string) (string, error) {
+func prepareCSVReport(reports []segment.BetterCSVReport, userID string) (string, error) {
 	b, err := csvutil.Marshal(reports)
 	if err != nil {
 		return "", err
@@ -176,7 +179,7 @@ func prepareCSVReport(reports []BetterCSVReport, userID string) (string, error) 
 	return absPath, nil
 }
 
-func prepareOriginalCSVReports(reports []CSVReport, userID string) (string, error) {
+func prepareOriginalCSVReports(reports []segment.CSVReport, userID string) (string, error) {
 	b, err := csvutil.Marshal(reports)
 	if err != nil {
 		return "", err
@@ -201,7 +204,7 @@ func prepareOriginalCSVReports(reports []CSVReport, userID string) (string, erro
 	return absPath, nil
 }
 
-func NewService(logs *logger.Logger, storage Storage) Service {
+func NewService(logs *logger.Logger, storage Storage) http.Service {
 	return &service{
 		logs:    logs,
 		storage: storage,
