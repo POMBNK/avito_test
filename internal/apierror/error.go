@@ -40,5 +40,5 @@ func (e *ApiError) Marshal() []byte {
 }
 
 func systemErr(developerMsg string) *ApiError {
-	return New("system error", developerMsg, "US-000500")
+	return New("system error", developerMsg, "Avito_Segment_Service-000500")
 }

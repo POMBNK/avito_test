@@ -14,6 +14,15 @@ import (
 	"time"
 )
 
+// @title Avito Segment Service API
+// @version 1.0
+// @description API Server for Avito Segment Service
+// @contact.name Uchaev Roman
+// @contact.url https://github.com/POMBNK
+// @contact.email uchaevroman11@gmail.com
+// @host 127.0.0.1:8080
+// @BasePath /
+
 func main() {
 	logs := logger.GetLogger()
 	logs.Println("Logger initialized.")

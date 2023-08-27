@@ -1,0 +1,304 @@
+basePath: /
+definitions:
+  apierror.ApiError:
+    properties:
+      code:
+        type: string
+      description:
+        type: string
+      developer_msg:
+        type: string
+    type: object
+  segment.ActiveSegments:
+    properties:
+      ID:
+        type: string
+      name:
+        type: string
+    type: object
+  segment.ReportDateDTO:
+    properties:
+      month:
+        type: string
+      year:
+        type: string
+    type: object
+  segment.SegmentsUsers:
+    properties:
+      ID:
+        type: string
+      add:
+        items:
+          type: string
+        type: array
+      delete:
+        items:
+          type: string
+        type: array
+      userID:
+        type: string
+    type: object
+  segment.ToCreateSegmentDTO:
+    properties:
+      name:
+        type: string
+    type: object
+  segment.ToDeleteSegmentDTO:
+    properties:
+      name:
+        type: string
+    type: object
+host: 127.0.0.1:8080
+info:
+  contact:
+    email: uchaevroman11@gmail.com
+    name: Uchaev Roman
+    url: https://github.com/POMBNK
+  description: API Server for Avito Segment Service
+  title: Avito Segment Service API
+  version: "1.0"
+paths:
+  /api/original_reports/{userID}:
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Receiving CSV report with all user actions with segments by user ID, year and month.
+        Report v1 exist according to the terms of reference about CSV reports
+      operationId: get-report-v1
+      parameters:
+      - description: userID
+        in: path
+        name: userID
+        required: true
+        type: integer
+      - description: Month and year as the beginning of the time period for the CSV
+          report
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/segment.ReportDateDTO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/apierror.ApiError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/apierror.ApiError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/apierror.ApiError'
+        default:
+          description: ""
+          schema:
+            $ref: '#/definitions/apierror.ApiError'
+      summary: Get user's report v1
+      tags:
+      - reports
+  /api/reports/{userID}:
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Receiving CSV report with all user actions with segments by user ID, year and month.
+        Report v2 has better query and format to read.
+      operationId: get-report-v2
+      parameters:
+      - description: userID
+        in: path
+        name: userID
+        required: true
+        type: integer
+      - description: Month and year as the beginning of the time period for the CSV
+          report
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/segment.ReportDateDTO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/apierror.ApiError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/apierror.ApiError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/apierror.ApiError'
+        default:
+          description: ""
+          schema:
+            $ref: '#/definitions/apierror.ApiError'
+      summary: Get user's report v2
+      tags:
+      - reports
+  /api/segments:
+    delete:
+      consumes:
+      - application/json
+      description: delete segment
+      operationId: delete-segment
+      parameters:
+      - description: segment info
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/segment.ToDeleteSegmentDTO'
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/apierror.ApiError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/apierror.ApiError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/apierror.ApiError'
+        default:
+          description: ""
+          schema:
+            $ref: '#/definitions/apierror.ApiError'
+      summary: Delete segment
+      tags:
+      - segments
+    post:
+      consumes:
+      - application/json
+      description: create segment
+      operationId: create-segment
+      parameters:
+      - description: segment info
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/segment.ToCreateSegmentDTO'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/apierror.ApiError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/apierror.ApiError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/apierror.ApiError'
+        default:
+          description: ""
+          schema:
+            $ref: '#/definitions/apierror.ApiError'
+      summary: Create segment
+      tags:
+      - segments
+    put:
+      consumes:
+      - application/json
+      description: Adds and removes tags to the user
+      operationId: edit-segment
+      parameters:
+      - description: User's segment info
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/segment.SegmentsUsers'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/apierror.ApiError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/apierror.ApiError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/apierror.ApiError'
+        default:
+          description: ""
+          schema:
+            $ref: '#/definitions/apierror.ApiError'
+      summary: Edit segments to user
+      tags:
+      - segments
+  /api/segments/{userID}:
+    get:
+      consumes:
+      - application/json
+      description: Get all active user's segments by userID
+      operationId: get-active-segments
+      parameters:
+      - description: userID
+        in: path
+        name: userID
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/segment.ActiveSegments'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/apierror.ApiError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/apierror.ApiError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/apierror.ApiError'
+        default:
+          description: ""
+          schema:
+            $ref: '#/definitions/apierror.ApiError'
+      summary: Get active segments by id
+      tags:
+      - segments
+swagger: "2.0"
