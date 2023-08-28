@@ -120,9 +120,9 @@ func Test_service_Create(t *testing.T) {
 		dto segment.ToCreateSegmentDTO
 	}
 	tests := []struct {
-		name    string
-		args    args
-		wantErr bool
+		name string
+		args args
+		want string
 	}{
 		{name: "Test_service_Create_1",
 			args: args{
@@ -131,6 +131,7 @@ func Test_service_Create(t *testing.T) {
 					Name: "test_name1",
 				},
 			},
+			want: "id",
 		},
 		{name: "Test_service_Create_2",
 			args: args{
@@ -146,14 +147,14 @@ func Test_service_Create(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			storage := mocks.NewStorage(t)
 			logs := logger.GetLogger()
-			storage.On("Create", tt.args.ctx, segment.CreateSegmentDto(tt.args.dto)).Return("id", nil)
+			storage.On("Create", tt.args.ctx, segment.CreateSegmentDto(tt.args.dto)).Return(tt.want, nil)
 
 			s := &service{
 				logs:    logs,
 				storage: storage,
 			}
 			got, err := s.Create(tt.args.ctx, tt.args.dto)
-			assert.Equal(t, "id", got)
+			assert.Equal(t, tt.want, got)
 			assert.NoError(t, err)
 			storage.AssertExpectations(t)
 		})
@@ -167,9 +168,8 @@ func Test_service_Delete(t *testing.T) {
 		dto segment.ToDeleteSegmentDTO
 	}
 	tests := []struct {
-		name    string
-		args    args
-		wantErr bool
+		name string
+		args args
 	}{
 		{
 			name: "Test_service_Delete_1",
@@ -215,9 +215,8 @@ func Test_service_EditUserToSegments(t *testing.T) {
 		dto segment.ToUpdateUsersSegmentsDTO
 	}
 	tests := []struct {
-		name    string
-		args    args
-		wantErr bool
+		name string
+		args args
 	}{
 		{
 			name: "Test_service_EditUserToSegments_1",
@@ -274,16 +273,25 @@ func Test_service_GetActiveSegments(t *testing.T) {
 		userID string
 	}
 	tests := []struct {
-		name    string
-		args    args
-		want    []segment.ActiveSegments
-		wantErr bool
+		name string
+		args args
+		want []segment.ActiveSegments
 	}{
 		{
 			name: "Test_service_GetActiveSegments_1",
 			args: args{
 				ctx:    context.Background(),
 				userID: "user_id_1",
+			},
+			want: []segment.ActiveSegments{
+				{
+					ID:   "segment_id_1",
+					Name: "segment_name_1",
+				},
+				{
+					ID:   "segment_id_2",
+					Name: "segment_name_2",
+				},
 			},
 		},
 	}
@@ -296,7 +304,6 @@ func Test_service_GetActiveSegments(t *testing.T) {
 			}
 			storage.On("GetActiveSegments", tt.args.ctx, tt.args.userID).Return(tt.want, nil)
 
-			s.GetActiveSegments(tt.args.ctx, tt.args.userID)
 			got, err := s.GetActiveSegments(tt.args.ctx, tt.args.userID)
 			assert.NoError(t, err)
 			assert.Equal(t, tt.want, got)
@@ -306,71 +313,174 @@ func Test_service_GetActiveSegments(t *testing.T) {
 }
 
 func Test_service_GetUserHistoryOptimized(t *testing.T) {
-	type fields struct {
-		storage Storage
-	}
+
 	type args struct {
 		ctx    context.Context
 		userID string
 		dto    segment.ReportDateDTO
 	}
 	tests := []struct {
-		name    string
-		fields  fields
-		args    args
-		want    string
-		wantErr bool
+		name string
+		args args
+		want string
 	}{
-		// TODO: Add test cases.
+		{
+			name: "Test_service_GetUserHistoryOptimized_1",
+			args: args{
+				ctx:    context.Background(),
+				userID: "1",
+				dto: segment.ReportDateDTO{
+					Month: "august",
+					Year:  "2023",
+				},
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+
+			storage := mocks.NewStorage(t)
+			timestampzMock := "2023-08-01T00:00:00Z"
+			storage.On("GetUserHistoryOptimized", tt.args.ctx, tt.args.userID, timestampzMock).Return([]segment.BetterCSVReport{
+				{
+					UserID:      "1",
+					SegmentName: "test_name1",
+					Active:      true,
+					CreatedAt:   time.Now(),
+					DeletedAt:   nil,
+				},
+			}, nil)
+
 			s := &service{
-				storage: tt.fields.storage,
+				storage: storage,
 			}
-			got, err := s.GetUserHistoryOptimized(tt.args.ctx, tt.args.userID, tt.args.dto)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("GetUserHistoryOptimized() error = %v, wantErr %v", err, tt.wantErr)
-				return
+
+			_, err := s.GetUserHistoryOptimized(tt.args.ctx, tt.args.userID, tt.args.dto)
+			assert.NoError(t, err)
+		})
+	}
+}
+
+func Test_service_GetUserHistoryOptimized_Failed(t *testing.T) {
+
+	type args struct {
+		ctx    context.Context
+		userID string
+		dto    segment.ReportDateDTO
+	}
+	tests := []struct {
+		name string
+		args args
+		want string
+	}{
+		{
+			name: "Test_service_GetUserHistoryOptimized_1",
+			args: args{
+				ctx:    context.Background(),
+				userID: "1",
+				dto: segment.ReportDateDTO{
+					Month: "august",
+					Year:  "2023",
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+
+			storage := mocks.NewStorage(t)
+			timestampz := "2023-08-01T00:00:00Z"
+			storage.On("GetUserHistoryOptimized", tt.args.ctx, tt.args.userID, timestampz).Return([]segment.BetterCSVReport{}, nil)
+
+			s := &service{
+				storage: storage,
 			}
-			if got != tt.want {
-				t.Errorf("GetUserHistoryOptimized() got = %v, want %v", got, tt.want)
-			}
+
+			_, err := s.GetUserHistoryOptimized(tt.args.ctx, tt.args.userID, tt.args.dto)
+			assert.Error(t, err, fmt.Errorf("empty report"))
 		})
 	}
 }
 
 func Test_service_GetUserHistoryOriginal(t *testing.T) {
-	type fields struct {
-		storage Storage
-	}
 	type args struct {
 		ctx    context.Context
 		userID string
 		dto    segment.ReportDateDTO
 	}
 	tests := []struct {
-		name    string
-		fields  fields
-		args    args
-		want    string
-		wantErr bool
+		name string
+		args args
+		want string
 	}{
-		// TODO: Add test cases.
+		{
+			name: "Test_service_GetUserHistoryOriginal_1",
+			args: args{
+				ctx:    context.Background(),
+				userID: "1",
+				dto: segment.ReportDateDTO{
+					Month: "august",
+					Year:  "2023",
+				},
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			timestampzMock := "2023-08-01T00:00:00Z"
+			storage := mocks.NewStorage(t)
+			storage.On("GetUserHistoryOriginal", tt.args.ctx, tt.args.userID, timestampzMock).Return([]segment.CSVReport{
+				{
+					UserID:      "1",
+					SegmentName: "test_name1",
+					Action:      "created",
+					Date:        time.Now(),
+				},
+			}, nil)
+
 			s := &service{
-				storage: tt.fields.storage,
+				storage: storage,
 			}
-			got, err := s.GetUserHistoryOriginal(tt.args.ctx, tt.args.userID, tt.args.dto)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("GetUserHistoryOriginal() error = %v, wantErr %v", err, tt.wantErr)
-				return
+			_, err := s.GetUserHistoryOriginal(tt.args.ctx, tt.args.userID, tt.args.dto)
+			assert.NoError(t, err)
+		})
+	}
+}
+
+func Test_service_GetUserHistoryOriginalFailed(t *testing.T) {
+	type args struct {
+		ctx    context.Context
+		userID string
+		dto    segment.ReportDateDTO
+	}
+	tests := []struct {
+		name string
+		args args
+		want string
+	}{
+		{
+			name: "Test_service_GetUserHistoryOriginal_1",
+			args: args{
+				ctx:    context.Background(),
+				userID: "1",
+				dto: segment.ReportDateDTO{
+					Month: "august",
+					Year:  "2023",
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			timestampzMock := "2023-08-01T00:00:00Z"
+			storage := mocks.NewStorage(t)
+			storage.On("GetUserHistoryOriginal", tt.args.ctx, tt.args.userID, timestampzMock).Return([]segment.CSVReport{}, nil)
+
+			s := &service{
+				storage: storage,
 			}
-			if got != tt.want {
-				t.Errorf("GetUserHistoryOriginal() got = %v, want %v", got, tt.want)
-			}
+			_, err := s.GetUserHistoryOriginal(tt.args.ctx, tt.args.userID, tt.args.dto)
+			assert.Error(t, err, fmt.Errorf("empty report"))
 		})
 	}
 }
