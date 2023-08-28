@@ -15,9 +15,12 @@ type ActiveSegments struct {
 }
 
 type SegmentsUsers struct {
-	ID     string   `json:"ID"`
-	UserID string   `json:"userID"`
-	Add    []string `json:"add"`
+	ID     string `json:"ID"`
+	UserID string `json:"userID"`
+	Add    []struct {
+		Name    string `json:"name"`
+		TtlDays int    `json:"ttl_days,omitempty"`
+	} `json:"add"`
 	Delete []string `json:"delete"`
 }
 

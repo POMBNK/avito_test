@@ -65,3 +65,34 @@ WHERE u.id = 2
   AND us.active=FALSE
   AND NOW() >= del_at
 ORDER BY date;
+
+--get random users by given percent
+SELECT * FROM users --change * to id
+ORDER BY RANDOM()
+    LIMIT (SELECT COUNT(*) FROM users) * 0.8
+
+
+SELECT * FROM users
+ORDER BY RANDOM()
+    LIMIT (SELECT COUNT(*) FROM users) * 0.8;
+
+--with ttl
+INSERT INTO user_segment(segment_id, user_id, ACTIVE,del_after)
+WITH data AS (SELECT id AS segment_id, 3 AS user_id, TRUE AS active,CAST('2023-08-25 15:49:07.758484 +00:00' AS TIMESTAMPTZ ) as del_after FROM segment WHERE name = 'discount80')
+SELECT segment_id, user_id, active,del_after FROM data
+WHERE NOT EXISTS (SELECT * FROM user_segment
+                  WHERE (user_id = (select user_id from DATA) AND
+                         segment_id = (select segment_id from DATA) AND
+                         active = TRUE));
+
+--ttl update
+INSERT INTO user_segment(segment_id, user_id, ACTIVE,del_after)
+WITH data AS (SELECT id AS segment_id, 3 AS user_id, TRUE AS active,
+                     CASE WHEN '' = ''
+                              THEN NULL
+                          ElSE CAST('2023-08-25 15:49:07.758484 +00:00' AS TIMESTAMPTZ ) END as del_after FROM segment WHERE name = 'discount80')
+SELECT segment_id, user_id, active,del_after FROM data
+WHERE NOT EXISTS (SELECT * FROM user_segment
+                  WHERE (user_id = (select user_id from DATA) AND
+                         segment_id = (select segment_id from DATA) AND
+                         active = TRUE));

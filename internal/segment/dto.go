@@ -10,8 +10,11 @@ type ToDeleteSegmentDTO struct {
 }
 
 type ToUpdateUsersSegmentsDTO struct {
-	UserID string   `json:"userID"`
-	Add    []string `json:"add"`
+	UserID string `json:"userID"`
+	Add    []struct {
+		Name    string `json:"name"`
+		TtlDays int    `json:"ttl_days,omitempty"`
+	} `json:"add"`
 	Delete []string `json:"delete"`
 }
 

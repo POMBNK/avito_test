@@ -82,9 +82,10 @@ func (d *postgresDB) Delete(ctx context.Context, segment segment.Segment) error 
 	return nil
 }
 
+// TODO: Change docstring
 // AddUserToSegments Method for adding a user to a segment.
 // Accepts a list of (names) of segments to add a user to
-func (d *postgresDB) AddUserToSegments(ctx context.Context, segmentsUser segment.SegmentsUsers, segmentName string) error {
+func (d *postgresDB) AddUserToSegments(ctx context.Context, segmentsUser segment.SegmentsUsers, segmentName, deleteAfter string) error {
 
 	existedSegment, err := d.isSegmentExist(ctx, segmentName)
 	if existedSegment == "" {
@@ -95,18 +96,65 @@ func (d *postgresDB) AddUserToSegments(ctx context.Context, segmentsUser segment
 	if err != nil {
 		return err
 	}
+	// for loving memory...
+	//var del_after string
+	//var stub string
+	//
+	//if deleteAfter == "" {
+	//	del_after = ""
+	//	stub = ""
+	//} else {
+	//	del_after = ", del_after"
+	//	stub = fmt.Sprintf(",CAST('%s' AS TIMESTAMPTZ ) as del_after", deleteAfter)
+	//}
+	//
+	//q := fmt.Sprintf(`
+	//		INSERT INTO user_segment(segment_id, user_id, ACTIVE %s)
+	//		WITH data AS (SELECT id AS segment_id, %d AS user_id, TRUE AS active
+	//			 %s FROM segment WHERE name = '%s')
+	//		SELECT segment_id, user_id, active %s
+	//		FROM data
+	//		WHERE NOT EXISTS (SELECT * FROM user_segment
+	//		                           WHERE (user_id = (SELECT user_id from DATA)
+	//		                                      AND segment_id = (SELECT segment_id from DATA) AND active = TRUE))`,
+	//	del_after, intUserID, stub, segmentName, del_after)
 
-	q := fmt.Sprintf(`INSERT INTO user_segment(segment_id, user_id, ACTIVE)
-			WITH data AS (SELECT id AS segment_id, %d AS user_id, TRUE AS active FROM segment WHERE name = $1)
-			SELECT segment_id, user_id, active FROM data
-			WHERE NOT EXISTS (SELECT * FROM user_segment
-                  WHERE (user_id = (SELECT user_id from DATA) AND
-                         segment_id = (SELECT segment_id from DATA) AND
-                         active = TRUE))`, intUserID)
+	var q string
+	if deleteAfter == "" {
+		q = fmt.Sprintf(`INSERT INTO user_segment(segment_id, user_id, active)
+			  WITH data AS 
+			  (
+				SELECT id AS segment_id, %d AS user_id, TRUE AS active    
+               		FROM segment WHERE name = '%s'
+			  )
+			  SELECT segment_id, user_id, active
+              FROM data
+              WHERE NOT EXISTS (
+                SELECT * FROM user_segment
+                WHERE user_id = (SELECT user_id FROM data)
+                  AND segment_id = (SELECT segment_id FROM data)
+                  AND active = TRUE
+              )`, intUserID, segmentName)
+	} else {
+		q = fmt.Sprintf(`INSERT INTO user_segment(segment_id, user_id, active, del_after)
+			  WITH data AS 
+			  (
+				SELECT id AS segment_id, %d AS user_id, TRUE AS active, CAST('%s' AS TIMESTAMP ) AS del_after 
+               		FROM segment WHERE name = '%s'
+			  )
+			  SELECT segment_id, user_id, active, del_after 
+              FROM data
+              WHERE NOT EXISTS (
+                SELECT * FROM user_segment
+                WHERE user_id = (SELECT user_id FROM data)
+                  AND segment_id = (SELECT segment_id FROM data)
+                  AND active = TRUE
+              )`, intUserID, deleteAfter, segmentName)
+	}
 	ctx, cancel := context.WithTimeout(ctx, time.Second*5)
 	defer cancel()
 
-	_, err = d.client.Exec(ctx, q, segmentName)
+	_, err = d.client.Exec(ctx, q)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return apierror.ErrNotFound
@@ -275,6 +323,24 @@ func (d *postgresDB) GetUserHistoryOriginal(ctx context.Context, userID string, 
 	return reports, nil
 }
 
+func (d *postgresDB) CheckSegmentsTTL(ctx context.Context) error {
+	q := `UPDATE user_segment
+			SET active = FALSE
+			WHERE (active = TRUE AND del_after <= now());`
+
+	ctx, cancel := context.WithTimeout(ctx, time.Second*5)
+	defer cancel()
+	_, err := d.client.Exec(ctx, q)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return apierror.ErrNotFound
+		}
+		return err
+	}
+
+	return nil
+}
+
 func (d *postgresDB) isSegmentExist(ctx context.Context, segmentName string) (string, error) {
 	var segmentUnit segment.Segment
 	q := `SELECT id FROM segment WHERE name=$1`
@@ -294,6 +360,20 @@ func (d *postgresDB) isSegmentExist(ctx context.Context, segmentName string) (st
 func (d *postgresDB) createSegment(ctx context.Context, segment segment.Segment) (string, error) {
 	d.logs.Debug("Creating segment")
 	q := `INSERT INTO segment (name, active) VALUES ($1,'1') RETURNING id`
+	//q = fmt.Sprintf(`INSERT INTO user_segment(segment_id, user_id, active)
+	//		  WITH data AS
+	//		  (
+	//			SELECT id AS segment_id, %d AS user_id, TRUE AS active
+	//           		FROM segment WHERE name = '%s'
+	//		  )
+	//		  SELECT segment_id, user_id, active
+	//          FROM data
+	//          WHERE NOT EXISTS (
+	//            SELECT * FROM user_segment
+	//            WHERE user_id = (SELECT user_id FROM data)
+	//              AND segment_id = (SELECT segment_id FROM data)
+	//              AND active = TRUE
+	//          )`, intUserID, segmentName)
 	ctx, cancel := context.WithTimeout(ctx, time.Second*5)
 	defer cancel()
 

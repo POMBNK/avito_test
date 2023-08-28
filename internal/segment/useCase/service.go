@@ -33,7 +33,7 @@ type Storage interface {
 
 	// AddUserToSegments Method for adding a user to a segment.
 	//Accepts a list of (names) of segments to add a user to
-	AddUserToSegments(ctx context.Context, segmentsUser segment.SegmentsUsers, segmentName string) error
+	AddUserToSegments(ctx context.Context, segmentsUser segment.SegmentsUsers, segmentName, deleteAfter string) error
 
 	// DeleteSegmentFromUser Method for removing a user from segment.
 	//Accepts a list of (names) of segments to delete from user
@@ -48,6 +48,8 @@ type Storage interface {
 	GetUserHistoryOptimized(ctx context.Context, userID, timestampz string) ([]segment.BetterCSVReport, error)
 
 	GetUserHistoryOriginal(ctx context.Context, userID string, timestampz string) ([]segment.CSVReport, error)
+
+	CheckSegmentsTTL(ctx context.Context) error
 }
 
 type service struct {
@@ -83,8 +85,12 @@ func (s *service) EditUserToSegments(ctx context.Context, dto segment.ToUpdateUs
 		return err
 	}
 
-	for _, segmentName := range segmentUnit.Add {
-		err = s.storage.AddUserToSegments(ctx, segmentUnit, segmentName)
+	for _, segmentField := range segmentUnit.Add {
+		var deleteAfter = ""
+		if !(segmentField.TtlDays == 0) {
+			deleteAfter = time.Now().AddDate(0, 0, segmentField.TtlDays).Format("2006-01-02 15:04:05-07")
+		}
+		err = s.storage.AddUserToSegments(ctx, segmentUnit, segmentField.Name, deleteAfter)
 		if err != nil {
 			return err
 		}
@@ -152,6 +158,10 @@ func (s *service) GetUserHistoryOriginal(ctx context.Context, userID string, dto
 	}
 
 	return link, nil
+}
+
+func (s *service) CheckSegmentsTTL(ctx context.Context) error {
+	return s.storage.CheckSegmentsTTL(ctx)
 }
 
 func prepareCSVReport(reports []segment.BetterCSVReport, userID string) (string, error) {

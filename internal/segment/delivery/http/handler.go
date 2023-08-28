@@ -22,6 +22,7 @@ const (
 	csvReport         = "/api/reports/:user_id"
 	csvReportOriginal = "/api/original_reports/:user_id"
 	swagger           = "/swagger/*filepath"
+	cronURL           = "/api/segments/ttl"
 )
 
 type Service interface {
@@ -31,6 +32,7 @@ type Service interface {
 	GetActiveSegments(ctx context.Context, userID string) ([]segment.ActiveSegments, error)
 	GetUserHistoryOptimized(ctx context.Context, userID string, dto segment.ReportDateDTO) (string, error)
 	GetUserHistoryOriginal(ctx context.Context, userID string, dto segment.ReportDateDTO) (string, error)
+	CheckSegmentsTTL(ctx context.Context) error
 }
 
 type handler struct {
@@ -45,6 +47,7 @@ func (h *handler) Register(r *httprouter.Router) {
 	r.HandlerFunc(http.MethodGet, activeSegmentsURL, apierror.Middleware(h.GetActiveSegmentFromUser))
 	r.HandlerFunc(http.MethodPost, csvReport, apierror.Middleware(h.GetCSVReport))
 	r.HandlerFunc(http.MethodPost, csvReportOriginal, apierror.Middleware(h.GetOriginalCSVReport))
+	r.HandlerFunc(http.MethodPost, cronURL, apierror.Middleware(h.CronJobSegments))
 	r.HandlerFunc(http.MethodGet, swagger, httpSwagger.WrapHandler)
 }
 
@@ -129,7 +132,7 @@ func (h *handler) DeleteSegment(w http.ResponseWriter, r *http.Request) error {
 func (h *handler) EditUserSegments(w http.ResponseWriter, r *http.Request) error {
 	h.logs.Info("Add segments to user")
 	w.Header().Set("Content-Type", "application/json")
-	//TODO: parse userID from URL or JSON?
+	// TODO: parse userID from URL or JSON?
 	//params := r.Context().Value(httprouter.ParamsKey).(httprouter.Params)
 	//userID := params.ByName(id)
 
@@ -171,7 +174,7 @@ func (h *handler) GetActiveSegmentFromUser(w http.ResponseWriter, r *http.Reques
 	if err != nil {
 		return err
 	}
-
+	// TODO: change JSON body to url query
 	activeSegmentsBytes, err := json.Marshal(activeSegments)
 	if err != nil {
 		return err
@@ -256,6 +259,19 @@ func (h *handler) GetOriginalCSVReport(w http.ResponseWriter, r *http.Request) e
 	}
 
 	w.Write([]byte(reportLink))
+	w.WriteHeader(http.StatusOK)
+	return nil
+}
+
+func (h *handler) CronJobSegments(w http.ResponseWriter, r *http.Request) error {
+	h.logs.Info("Cron job running...")
+	w.Header().Set("Content-Type", "application/json")
+
+	err := h.service.CheckSegmentsTTL(context.Background())
+	if err != nil {
+		return err
+	}
+	h.logs.Info("Cron job done")
 	w.WriteHeader(http.StatusOK)
 	return nil
 }
