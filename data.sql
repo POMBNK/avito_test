@@ -69,7 +69,7 @@ ORDER BY date;
 --get random users by given percent
 SELECT * FROM users --change * to id
 ORDER BY RANDOM()
-    LIMIT (SELECT COUNT(*) FROM users) * 0.8
+    LIMIT (SELECT COUNT(*) FROM users) * 0.8;
 
 
 SELECT * FROM users

@@ -50,6 +50,8 @@ type Storage interface {
 	GetUserHistoryOriginal(ctx context.Context, userID string, timestampz string) ([]segment.CSVReport, error)
 
 	CheckSegmentsTTL(ctx context.Context) error
+
+	AddToRandomUsers(ctx context.Context, segment segment.Segment, percent int) error
 }
 
 type service struct {
@@ -64,6 +66,14 @@ func (s *service) Create(ctx context.Context, dto segment.ToCreateSegmentDTO) (s
 	if err != nil {
 		return "", err
 	}
+	//TODO Check negative percent scenario and garant >=1
+	if dto.Percent != 0 {
+		err = s.storage.AddToRandomUsers(ctx, segmentUnit, dto.Percent)
+		if err != nil {
+			return "", err
+		}
+	}
+
 	return ID, nil
 }
 

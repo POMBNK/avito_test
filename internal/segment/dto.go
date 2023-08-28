@@ -2,7 +2,8 @@ package segment
 
 // Data Transfer Object to transport using models
 type ToCreateSegmentDTO struct {
-	Name string `json:"name"`
+	Name    string `json:"name"`
+	Percent int    `json:"percent"`
 }
 
 type ToDeleteSegmentDTO struct {

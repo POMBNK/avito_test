@@ -47,6 +47,58 @@ func (d *postgresDB) Create(ctx context.Context, segment segment.Segment) (strin
 	return existID, nil
 }
 
+func (d *postgresDB) AddToRandomUsers(ctx context.Context, segment segment.Segment, percent int) error {
+	//TODO: Add id to user model
+	q := fmt.Sprintf(`SELECT id FROM users
+			ORDER BY RANDOM()
+    		LIMIT (SELECT COUNT(id) FROM users) * 0.%d`, percent)
+
+	ctx, cancel := context.WithTimeout(ctx, time.Second*5)
+	defer cancel()
+
+	userIDs := make([]int, 0)
+	rows, err := d.client.Query(ctx, q)
+	for rows.Next() {
+		var id int
+		err = rows.Scan(&id)
+		if err != nil {
+			return err
+		}
+		userIDs = append(userIDs, id)
+	}
+
+	if err = rows.Err(); err != nil {
+		return err
+	}
+
+	ctx, cancel = context.WithTimeout(ctx, time.Second*5)
+	defer cancel()
+	for _, userID := range userIDs {
+
+		q = fmt.Sprintf(`INSERT INTO user_segment(segment_id, user_id, active)
+			  WITH data AS
+			  (
+				SELECT id AS segment_id, %d AS user_id, TRUE AS active
+	          		FROM segment WHERE name = '%s'
+			  )
+			  SELECT segment_id, user_id, active
+	         FROM data
+	         WHERE NOT EXISTS (
+	           SELECT * FROM user_segment
+	           WHERE user_id = (SELECT user_id FROM data)
+	             AND segment_id = (SELECT segment_id FROM data)
+	             AND active = TRUE
+	         )`, userID, segment.Name)
+
+		_, err = d.client.Exec(ctx, q)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 // Delete method.
 // Update a segment field "active" to false (0).
 // The field is not deleted from table:
@@ -359,21 +411,9 @@ func (d *postgresDB) isSegmentExist(ctx context.Context, segmentName string) (st
 
 func (d *postgresDB) createSegment(ctx context.Context, segment segment.Segment) (string, error) {
 	d.logs.Debug("Creating segment")
+
 	q := `INSERT INTO segment (name, active) VALUES ($1,'1') RETURNING id`
-	//q = fmt.Sprintf(`INSERT INTO user_segment(segment_id, user_id, active)
-	//		  WITH data AS
-	//		  (
-	//			SELECT id AS segment_id, %d AS user_id, TRUE AS active
-	//           		FROM segment WHERE name = '%s'
-	//		  )
-	//		  SELECT segment_id, user_id, active
-	//          FROM data
-	//          WHERE NOT EXISTS (
-	//            SELECT * FROM user_segment
-	//            WHERE user_id = (SELECT user_id FROM data)
-	//              AND segment_id = (SELECT segment_id FROM data)
-	//              AND active = TRUE
-	//          )`, intUserID, segmentName)
+
 	ctx, cancel := context.WithTimeout(ctx, time.Second*5)
 	defer cancel()
 
