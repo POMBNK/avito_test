@@ -37,7 +37,7 @@ func Test_prepareCSVReport(t *testing.T) {
 						DeletedAt:   nil,
 					},
 					{
-						UserID:      "2",
+						UserID:      "1",
 						SegmentName: "TESTNAME2",
 						Active:      true,
 						CreatedAt:   time.Now(),
@@ -56,10 +56,10 @@ func Test_prepareCSVReport(t *testing.T) {
 			expectedFilePath, _ := filepath.Abs(reportPath + fileName)
 			absPath, err := prepareCSVReport(tt.args.reports, tt.args.userID)
 
-			assert.Nil(t, err)
+			assert.NoError(t, err)
 			assert.Equal(t, expectedFilePath, absPath)
 			err = os.Remove(absPath)
-			assert.Nil(t, err)
+			assert.NoError(t, err)
 		})
 	}
 }
@@ -86,7 +86,7 @@ func Test_prepareOriginalCSVReports(t *testing.T) {
 						Date:        time.Now(),
 					},
 					{
-						UserID:      "2",
+						UserID:      "1",
 						SegmentName: "TESTNAME2",
 						Action:      "false",
 						Date:        time.Now(),
@@ -105,10 +105,10 @@ func Test_prepareOriginalCSVReports(t *testing.T) {
 			expectedFilePath, _ := filepath.Abs(reportPath + fileName)
 			absPath, err := prepareOriginalCSVReports(tt.args.reports, tt.args.userID)
 
-			assert.Nil(t, err)
+			assert.NoError(t, err)
 			assert.Equal(t, expectedFilePath, absPath)
 			err = os.Remove(absPath)
-			assert.Nil(t, err)
+			assert.NoError(t, err)
 		})
 	}
 }
