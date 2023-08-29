@@ -14,13 +14,41 @@ type Storage struct {
 	mock.Mock
 }
 
-// AddUserToSegments provides a mock function with given fields: ctx, segmentsUser, segmentName
-func (_m *Storage) AddUserToSegments(ctx context.Context, segmentsUser segment.SegmentsUsers, segmentName string) error {
-	ret := _m.Called(ctx, segmentsUser, segmentName)
+// AddToRandomUsers provides a mock function with given fields: ctx, _a1, percent
+func (_m *Storage) AddToRandomUsers(ctx context.Context, _a1 segment.Segment, percent int) error {
+	ret := _m.Called(ctx, _a1, percent)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, segment.SegmentsUsers, string) error); ok {
-		r0 = rf(ctx, segmentsUser, segmentName)
+	if rf, ok := ret.Get(0).(func(context.Context, segment.Segment, int) error); ok {
+		r0 = rf(ctx, _a1, percent)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// AddUserToSegments provides a mock function with given fields: ctx, segmentsUser, segmentName, deleteAfter
+func (_m *Storage) AddUserToSegments(ctx context.Context, segmentsUser segment.SegmentsUsers, segmentName string, deleteAfter string) error {
+	ret := _m.Called(ctx, segmentsUser, segmentName, deleteAfter)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, segment.SegmentsUsers, string, string) error); ok {
+		r0 = rf(ctx, segmentsUser, segmentName, deleteAfter)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// CheckSegmentsTTL provides a mock function with given fields: ctx
+func (_m *Storage) CheckSegmentsTTL(ctx context.Context) error {
+	ret := _m.Called(ctx)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context) error); ok {
+		r0 = rf(ctx)
 	} else {
 		r0 = ret.Error(0)
 	}

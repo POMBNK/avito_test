@@ -224,23 +224,24 @@ func Test_service_EditUserToSegments(t *testing.T) {
 				ctx: context.Background(),
 				dto: segment.ToUpdateUsersSegmentsDTO{
 					UserID: "user_id_1",
-					Add:    []string{"segment1", "segment2"},
-					Delete: []string{"segment3"},
-				},
-			},
-		},
-		{
-			name: "Test_service_EditUserToSegments_2",
-			args: args{
-				ctx: context.Background(),
-				dto: segment.ToUpdateUsersSegmentsDTO{
-					UserID: "user_id_2",
-					Add:    []string{"segment4"},
-					Delete: []string{"segment5", "segment6"},
+					Add: []struct {
+						Name    string `json:"name"`
+						TtlDays int    `json:"ttl_days,omitempty"`
+					}([]struct {
+						Name    string
+						TtlDays int
+					}{
+						{
+							Name:    "segment1",
+							TtlDays: 1,
+						},
+					}),
+					Delete: []string{"segment2", "segment3"},
 				},
 			},
 		},
 	}
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 
@@ -250,9 +251,68 @@ func Test_service_EditUserToSegments(t *testing.T) {
 			}
 			segmentUnit := segment.UpdateUsersSegmentsDto(tt.args.dto)
 			storage.On("IsUserExist", tt.args.ctx, segmentUnit).Return(nil)
-
+			deleteAfter := time.Now().AddDate(0, 0, segmentUnit.Add[0].TtlDays).Format("2006-01-02 15:04:05-07")
 			for _, segmentName := range segmentUnit.Add {
-				storage.On("AddUserToSegments", tt.args.ctx, segmentUnit, segmentName).Return(nil)
+				storage.On("AddUserToSegments", tt.args.ctx, segmentUnit, segmentName.Name, deleteAfter).Return(nil)
+			}
+
+			for _, segmentName := range segmentUnit.Delete {
+				storage.On("DeleteSegmentFromUser", tt.args.ctx, segmentUnit, segmentName).Return(nil)
+			}
+
+			err := s.EditUserToSegments(tt.args.ctx, tt.args.dto)
+			assert.NoError(t, err)
+			storage.AssertExpectations(t)
+
+		})
+	}
+}
+
+func Test_service_EditUserToSegmentsFailed(t *testing.T) {
+
+	type args struct {
+		ctx context.Context
+		dto segment.ToUpdateUsersSegmentsDTO
+	}
+	tests := []struct {
+		name string
+		args args
+	}{
+		{
+			name: "Test_service_EditUserToSegments_1",
+			args: args{
+				ctx: context.Background(),
+				dto: segment.ToUpdateUsersSegmentsDTO{
+					UserID: "user_id_1",
+					Add: []struct {
+						Name    string `json:"name"`
+						TtlDays int    `json:"ttl_days,omitempty"`
+					}([]struct {
+						Name    string
+						TtlDays int
+					}{
+						{
+							Name: "segment1",
+						},
+					}),
+					Delete: []string{"segment2", "segment3"},
+				},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+
+			storage := mocks.NewStorage(t)
+			s := &service{
+				storage: storage,
+			}
+			segmentUnit := segment.UpdateUsersSegmentsDto(tt.args.dto)
+			storage.On("IsUserExist", tt.args.ctx, segmentUnit).Return(nil)
+			deleteAfter := ""
+			for _, segmentName := range segmentUnit.Add {
+				storage.On("AddUserToSegments", tt.args.ctx, segmentUnit, segmentName.Name, deleteAfter).Return(nil)
 			}
 
 			for _, segmentName := range segmentUnit.Delete {
