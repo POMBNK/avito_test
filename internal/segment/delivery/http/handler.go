@@ -26,6 +26,7 @@ const (
 	cronURL           = "/api/segments/ttl"
 )
 
+//go:generate go run github.com/vektra/mockery/v2@v2.33.0 --name Service
 type Service interface {
 	Create(ctx context.Context, dto segment.ToCreateSegmentDTO) (string, error)
 	Delete(ctx context.Context, dto segment.ToDeleteSegmentDTO) error
@@ -81,9 +82,10 @@ func (h *handler) CreateSegment(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
+	w.WriteHeader(http.StatusCreated)
 	w.Header().Set("Location", fmt.Sprintf("%s/%s", segmentsURL, segmentID))
 	w.Write(responses.Created.Marshal())
-	w.WriteHeader(http.StatusCreated)
+
 	return nil
 }
 
@@ -115,8 +117,8 @@ func (h *handler) DeleteSegment(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-	w.Write(responses.Deleted.Marshal())
 	w.WriteHeader(http.StatusNoContent)
+	w.Write(responses.Deleted.Marshal())
 	return nil
 }
 
@@ -149,8 +151,9 @@ func (h *handler) EditUserSegments(w http.ResponseWriter, r *http.Request) error
 	if err != nil {
 		return err
 	}
-	w.Write(responses.Updated.Marshal())
 	w.WriteHeader(http.StatusOK)
+	w.Write(responses.Updated.Marshal())
+
 	return nil
 }
 
@@ -183,8 +186,8 @@ func (h *handler) GetActiveSegmentFromUser(w http.ResponseWriter, r *http.Reques
 		return err
 	}
 
-	w.Write(activeSegmentsBytes)
 	w.WriteHeader(http.StatusOK)
+	w.Write(activeSegmentsBytes)
 
 	return nil
 
