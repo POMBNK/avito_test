@@ -544,3 +544,36 @@ func Test_service_GetUserHistoryOriginalFailed(t *testing.T) {
 		})
 	}
 }
+
+func Test_service_CheckSegmentsTTL(t *testing.T) {
+	type args struct {
+		ctx context.Context
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr assert.ErrorAssertionFunc
+	}{
+		{
+			name: "Test_service_CheckSegmentsTTL_1",
+			args: args{
+				ctx: context.Background(),
+			},
+			wantErr: assert.NoError,
+		},
+	}
+	for _, tt := range tests {
+
+		storage := mocks.NewStorage(t)
+		storage.On("CheckSegmentsTTL", tt.args.ctx).Return(nil)
+
+		t.Run(tt.name, func(t *testing.T) {
+			s := &service{
+				storage: storage,
+			}
+			err := s.CheckSegmentsTTL(tt.args.ctx)
+			assert.NoError(t, err)
+			storage.AssertExpectations(t)
+		})
+	}
+}
