@@ -114,7 +114,7 @@ func Test_handler_DeleteSegment(t *testing.T) {
 
 			err := h.DeleteSegment(w, r)
 			assert.NoError(t, err)
-			assert.Equal(t, http.StatusNoContent, w.Code)
+			assert.Equal(t, http.StatusOK, w.Code)
 		})
 	}
 }

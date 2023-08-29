@@ -103,8 +103,8 @@ func (h *handler) CreateSegment(w http.ResponseWriter, r *http.Request) error {
 // @Router /api/segments [delete]
 func (h *handler) DeleteSegment(w http.ResponseWriter, r *http.Request) error {
 	h.logs.Info("Delete segment")
-	w.Header().Set("Content-Type", "application/json")
 
+	w.Header().Set("Content-Type", "application/json")
 	var segmentDTO segment.ToDeleteSegmentDTO
 	defer r.Body.Close()
 	h.logs.Debug("mapping json to DTO")
@@ -117,8 +117,9 @@ func (h *handler) DeleteSegment(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-	w.WriteHeader(http.StatusNoContent)
+	w.WriteHeader(http.StatusOK)
 	w.Write(responses.Deleted.Marshal())
+
 	return nil
 }
 
