@@ -29,7 +29,12 @@ definitions:
         type: string
       add:
         items:
-          type: string
+          properties:
+            name:
+              type: string
+            ttl_days:
+              type: integer
+          type: object
         type: array
       delete:
         items:
@@ -42,6 +47,8 @@ definitions:
     properties:
       name:
         type: string
+      percent:
+        type: integer
     type: object
   segment.ToDeleteSegmentDTO:
     properties:
@@ -301,4 +308,33 @@ paths:
       summary: Get active segments by id
       tags:
       - segments
+  /api/segments/ttl:
+    post:
+      description: CronJobSegments is a function that handles cron job requests for
+        checking segment TTL.
+      operationId: ttl
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/apierror.ApiError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/apierror.ApiError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/apierror.ApiError'
+        default:
+          description: ""
+          schema:
+            $ref: '#/definitions/apierror.ApiError'
+      summary: Cron job to check ttl segments
+      tags:
+      - ttl
 swagger: "2.0"

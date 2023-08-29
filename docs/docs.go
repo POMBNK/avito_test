@@ -316,6 +316,48 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/segments/ttl": {
+            "post": {
+                "description": "CronJobSegments is a function that handles cron job requests for checking segment TTL.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "ttl"
+                ],
+                "summary": "Cron job to check ttl segments",
+                "operationId": "ttl",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/apierror.ApiError"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/apierror.ApiError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/apierror.ApiError"
+                        }
+                    },
+                    "default": {
+                        "description": "",
+                        "schema": {
+                            "$ref": "#/definitions/apierror.ApiError"
+                        }
+                    }
+                }
+            }
+        },
         "/api/segments/{userID}": {
             "get": {
                 "description": "Get all active user's segments by userID",
@@ -423,7 +465,15 @@ const docTemplate = `{
                 "add": {
                     "type": "array",
                     "items": {
-                        "type": "string"
+                        "type": "object",
+                        "properties": {
+                            "name": {
+                                "type": "string"
+                            },
+                            "ttl_days": {
+                                "type": "integer"
+                            }
+                        }
                     }
                 },
                 "delete": {
@@ -442,6 +492,9 @@ const docTemplate = `{
             "properties": {
                 "name": {
                     "type": "string"
+                },
+                "percent": {
+                    "type": "integer"
                 }
             }
         },

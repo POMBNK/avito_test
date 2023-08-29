@@ -263,6 +263,16 @@ func (h *handler) GetOriginalCSVReport(w http.ResponseWriter, r *http.Request) e
 	return nil
 }
 
+// @Summary Cron job to check ttl segments
+// @Tags ttl
+// @Description CronJobSegments is a function that handles cron job requests for checking segment TTL.
+// @ID ttl
+// @Produce  json
+// @Success 200
+// @Failure 400,404 {object} apierror.ApiError
+// @Failure 500 {object} apierror.ApiError
+// @Failure default {object} apierror.ApiError
+// @Router /api/segments/ttl [post]
 func (h *handler) CronJobSegments(w http.ResponseWriter, r *http.Request) error {
 	h.logs.Info("Cron job running...")
 	w.Header().Set("Content-Type", "application/json")
