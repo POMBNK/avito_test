@@ -7,6 +7,7 @@ import (
 	_ "github.com/POMBNK/avito_test_task/docs"
 	"github.com/POMBNK/avito_test_task/internal/apierror"
 	"github.com/POMBNK/avito_test_task/internal/handlers"
+	"github.com/POMBNK/avito_test_task/internal/responses"
 	"github.com/POMBNK/avito_test_task/internal/segment"
 	"github.com/POMBNK/avito_test_task/pkg/logger"
 	"github.com/julienschmidt/httprouter"
@@ -81,6 +82,7 @@ func (h *handler) CreateSegment(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	w.Header().Set("Location", fmt.Sprintf("%s/%s", segmentsURL, segmentID))
+	w.Write(responses.Created.Marshal())
 	w.WriteHeader(http.StatusCreated)
 	return nil
 }
@@ -113,6 +115,7 @@ func (h *handler) DeleteSegment(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
+	w.Write(responses.Deleted.Marshal())
 	w.WriteHeader(http.StatusNoContent)
 	return nil
 }
@@ -146,7 +149,7 @@ func (h *handler) EditUserSegments(w http.ResponseWriter, r *http.Request) error
 	if err != nil {
 		return err
 	}
-
+	w.Write(responses.Updated.Marshal())
 	w.WriteHeader(http.StatusOK)
 	return nil
 }
@@ -219,8 +222,9 @@ func (h *handler) GetCSVReport(w http.ResponseWriter, r *http.Request) error {
 	if err != nil {
 		return err
 	}
-
-	w.Write([]byte(reportLink))
+	linkJSON := responses.New(fmt.Sprintf("report: %s", reportLink),
+		"200 OK", "Avito_Segment_Service-000201")
+	w.Write(linkJSON.Marshal())
 	w.WriteHeader(http.StatusOK)
 	return nil
 }
@@ -258,7 +262,9 @@ func (h *handler) GetOriginalCSVReport(w http.ResponseWriter, r *http.Request) e
 		return err
 	}
 
-	w.Write([]byte(reportLink))
+	linkJSON := responses.New(fmt.Sprintf("report: %s", reportLink),
+		"200 OK", "Avito_Segment_Service-000201")
+	w.Write(linkJSON.Marshal())
 	w.WriteHeader(http.StatusOK)
 	return nil
 }
@@ -282,6 +288,7 @@ func (h *handler) CronJobSegments(w http.ResponseWriter, r *http.Request) error 
 		return err
 	}
 	h.logs.Info("Cron job done")
+	w.Write(responses.OK.Marshal())
 	w.WriteHeader(http.StatusOK)
 	return nil
 }

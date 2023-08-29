@@ -6,7 +6,6 @@ import (
 )
 
 var ErrNotFound = New("Not found", "", "Avito_Segment_Service-000404")
-var StatusOk = New("Errors not found", "", "Avito_Segment_Service-000404")
 
 type ApiError struct {
 	Description  string `json:"description"`
