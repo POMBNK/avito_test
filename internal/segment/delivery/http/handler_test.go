@@ -201,11 +201,11 @@ func Test_handler_GetActiveSegmentFromUser(t *testing.T) {
 	}
 }
 
-func Test_handler_GetCSVReport(t *testing.T) {
+func Test_handler_DownloadCSVUserReport(t *testing.T) {
 
 	type args struct {
-		id   string
-		body *bytes.Buffer
+		id  string
+		dto segment.ReportDateDTO
 	}
 	tests := []struct {
 		name string
@@ -214,13 +214,13 @@ func Test_handler_GetCSVReport(t *testing.T) {
 		{
 			name: "ok",
 			args: args{
-				id:   "1",
-				body: bytes.NewBufferString(`{"month": "August","year": "2023"}`),
+				id:  "1",
+				dto: segment.ReportDateDTO{Month: "august", Year: "2023"},
 			},
 		},
 	}
 	for _, tt := range tests {
-		r := httptest.NewRequest(http.MethodPost, "/reports"+tt.args.id, tt.args.body)
+		r := httptest.NewRequest(http.MethodGet, "/reports/download/"+tt.args.id+"?month="+tt.args.dto.Month+"&year="+tt.args.dto.Year+"", nil)
 		w := httptest.NewRecorder()
 		params := httprouter.Params{httprouter.Param{
 			Key:   "user_id",
@@ -230,14 +230,17 @@ func Test_handler_GetCSVReport(t *testing.T) {
 
 		t.Run(tt.name, func(t *testing.T) {
 			service := mocks.NewService(t)
-			service.On("GetUserHistoryOptimized", mock.Anything, tt.args.id, mock.Anything).Return("linkToFile", nil)
+			service.On("MakeCSVUserReport", mock.Anything, tt.args.id, tt.args.dto).Return(segment.ReportFile{
+				Data: nil,
+				Name: "",
+			}, nil)
 
 			h := &handler{
 				logs:    logger.GetLogger(),
 				service: service,
 			}
 
-			err := h.GetCSVReport(w, r.WithContext(ctx))
+			err := h.DownloadCSVUserReport(w, r.WithContext(ctx))
 			assert.NoError(t, err)
 			assert.Equal(t, http.StatusOK, w.Code)
 		})
@@ -246,8 +249,8 @@ func Test_handler_GetCSVReport(t *testing.T) {
 
 func Test_handler_GetOriginalCSVReport(t *testing.T) {
 	type args struct {
-		id   string
-		body *bytes.Buffer
+		id  string
+		dto segment.ReportDateDTO
 	}
 	tests := []struct {
 		name string
@@ -256,13 +259,13 @@ func Test_handler_GetOriginalCSVReport(t *testing.T) {
 		{
 			name: "ok",
 			args: args{
-				id:   "1",
-				body: bytes.NewBufferString(`{"month": "August","year": "2023"}`),
+				id:  "1",
+				dto: segment.ReportDateDTO{Month: "august", Year: "2023"},
 			},
 		},
 	}
 	for _, tt := range tests {
-		r := httptest.NewRequest(http.MethodPost, "/reports"+tt.args.id, tt.args.body)
+		r := httptest.NewRequest(http.MethodGet, "/reports/optimized/download/"+tt.args.id+"?month="+tt.args.dto.Month+"&year="+tt.args.dto.Year+"", nil)
 		w := httptest.NewRecorder()
 		params := httprouter.Params{httprouter.Param{
 			Key:   "user_id",
@@ -272,14 +275,17 @@ func Test_handler_GetOriginalCSVReport(t *testing.T) {
 
 		t.Run(tt.name, func(t *testing.T) {
 			service := mocks.NewService(t)
-			service.On("GetUserHistoryOriginal", mock.Anything, tt.args.id, mock.Anything).Return("linkToFile", nil)
+			service.On("MakeCSVUserReportOptimized", mock.Anything, tt.args.id, tt.args.dto).Return(segment.ReportFile{
+				Data: nil,
+				Name: "",
+			}, nil)
 
 			h := &handler{
 				logs:    logger.GetLogger(),
 				service: service,
 			}
 
-			err := h.GetOriginalCSVReport(w, r.WithContext(ctx))
+			err := h.DownloadCSVUserReportOptimized(w, r.WithContext(ctx))
 			assert.NoError(t, err)
 			assert.Equal(t, http.StatusOK, w.Code)
 		})

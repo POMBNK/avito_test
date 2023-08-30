@@ -107,19 +107,19 @@ func (_m *Service) GetActiveSegments(ctx context.Context, userID string) ([]segm
 	return r0, r1
 }
 
-// GetUserHistoryOptimized provides a mock function with given fields: ctx, userID, dto
-func (_m *Service) GetUserHistoryOptimized(ctx context.Context, userID string, dto segment.ReportDateDTO) (string, error) {
+// MakeCSVUserReport provides a mock function with given fields: ctx, userID, dto
+func (_m *Service) MakeCSVUserReport(ctx context.Context, userID string, dto segment.ReportDateDTO) (segment.ReportFile, error) {
 	ret := _m.Called(ctx, userID, dto)
 
-	var r0 string
+	var r0 segment.ReportFile
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, segment.ReportDateDTO) (string, error)); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, string, segment.ReportDateDTO) (segment.ReportFile, error)); ok {
 		return rf(ctx, userID, dto)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, string, segment.ReportDateDTO) string); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, string, segment.ReportDateDTO) segment.ReportFile); ok {
 		r0 = rf(ctx, userID, dto)
 	} else {
-		r0 = ret.Get(0).(string)
+		r0 = ret.Get(0).(segment.ReportFile)
 	}
 
 	if rf, ok := ret.Get(1).(func(context.Context, string, segment.ReportDateDTO) error); ok {
@@ -131,19 +131,19 @@ func (_m *Service) GetUserHistoryOptimized(ctx context.Context, userID string, d
 	return r0, r1
 }
 
-// GetUserHistoryOriginal provides a mock function with given fields: ctx, userID, dto
-func (_m *Service) GetUserHistoryOriginal(ctx context.Context, userID string, dto segment.ReportDateDTO) (string, error) {
+// MakeCSVUserReportOptimized provides a mock function with given fields: ctx, userID, dto
+func (_m *Service) MakeCSVUserReportOptimized(ctx context.Context, userID string, dto segment.ReportDateDTO) (segment.ReportFile, error) {
 	ret := _m.Called(ctx, userID, dto)
 
-	var r0 string
+	var r0 segment.ReportFile
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, segment.ReportDateDTO) (string, error)); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, string, segment.ReportDateDTO) (segment.ReportFile, error)); ok {
 		return rf(ctx, userID, dto)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, string, segment.ReportDateDTO) string); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, string, segment.ReportDateDTO) segment.ReportFile); ok {
 		r0 = rf(ctx, userID, dto)
 	} else {
-		r0 = ret.Get(0).(string)
+		r0 = ret.Get(0).(segment.ReportFile)
 	}
 
 	if rf, ok := ret.Get(1).(func(context.Context, string, segment.ReportDateDTO) error); ok {

@@ -8,8 +8,6 @@ import (
 	"github.com/POMBNK/avito_test_task/pkg/logger"
 	"github.com/POMBNK/avito_test_task/pkg/utils"
 	"github.com/jszwec/csvutil"
-	"os"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -124,54 +122,39 @@ func (s *service) GetActiveSegments(ctx context.Context, userID string) ([]segme
 	return activeSegments, err
 }
 
-func (s *service) GetUserHistoryOptimized(ctx context.Context, userID string, dto segment.ReportDateDTO) (string, error) {
+func (s *service) MakeCSVUserReportOptimized(ctx context.Context, userID string, dto segment.ReportDateDTO) (segment.ReportFile, error) {
+	var newReport segment.ReportFile
+
 	intYear, err := strconv.Atoi(dto.Year)
 	if err != nil {
-		return "", err
+		return segment.ReportFile{}, err
 	}
 	timestampz, err := utils.MapToTimestampz(dto.Month, intYear)
 
 	reports, err := s.storage.GetUserHistoryOptimized(ctx, userID, timestampz)
 	if err != nil {
-		return "", err
+		return segment.ReportFile{}, err
 	}
 	if len(reports) == 0 {
-		return "", fmt.Errorf("empty report")
+		return segment.ReportFile{}, fmt.Errorf("empty report")
 	}
 
-	link, err := prepareCSVReportOptimized(reports, userID)
+	b, err := csvutil.Marshal(reports)
 	if err != nil {
-		return "", err
+		return segment.ReportFile{}, err
 	}
+	createdAt := strings.ReplaceAll(strings.ReplaceAll(time.Now().Format(time.Stamp), " ", "_"), ":", "_")
+	fileName := fmt.Sprintf("report_userID_%s_%s.csv", userID, createdAt)
 
-	return link, nil
-}
+	newReport.Data = b
+	newReport.Name = fileName
 
-func (s *service) GetUserHistoryOriginal(ctx context.Context, userID string, dto segment.ReportDateDTO) (string, error) {
-	intYear, err := strconv.Atoi(dto.Year)
-	if err != nil {
-		return "", err
-	}
-	timestampz, err := utils.MapToTimestampz(dto.Month, intYear)
-
-	reports, err := s.storage.GetUserHistoryOriginal(ctx, userID, timestampz)
-	if err != nil {
-		return "", err
-	}
-	if len(reports) == 0 {
-		return "", fmt.Errorf("empty report")
-	}
-
-	link, err := prepareCSVReportsOriginal(reports, userID)
-	if err != nil {
-		return "", err
-	}
-
-	return link, nil
+	return newReport, nil
 }
 
 func (s *service) MakeCSVUserReport(ctx context.Context, userID string, dto segment.ReportDateDTO) (segment.ReportFile, error) {
 	var newReport segment.ReportFile
+
 	intYear, err := strconv.Atoi(dto.Year)
 	if err != nil {
 		return segment.ReportFile{}, err
@@ -201,56 +184,6 @@ func (s *service) MakeCSVUserReport(ctx context.Context, userID string, dto segm
 
 func (s *service) CheckSegmentsTTL(ctx context.Context) error {
 	return s.storage.CheckSegmentsTTL(ctx)
-}
-
-func prepareCSVReportOptimized(reports []segment.BetterCSVReport, userID string) (string, error) {
-	b, err := csvutil.Marshal(reports)
-	if err != nil {
-		return "", err
-	}
-
-	createdAt := strings.ReplaceAll(strings.ReplaceAll(time.Now().Format(time.Stamp), " ", "_"), ":", "_")
-	fileName := fmt.Sprintf("report_userID_%s_%s.csv", userID, createdAt)
-	err = os.MkdirAll(reportPath, 0744)
-	if err != nil && os.IsExist(err) {
-		return "", err
-	}
-	err = os.WriteFile(reportPath+fileName, b, 0744)
-	if err != nil {
-		return "", err
-	}
-
-	absPath, err := filepath.Abs(reportPath + fileName)
-	if err != nil {
-		return "", err
-	}
-
-	return absPath, nil
-}
-
-func prepareCSVReportsOriginal(reports []segment.CSVReport, userID string) (string, error) {
-	b, err := csvutil.Marshal(reports)
-	if err != nil {
-		return "", err
-	}
-
-	createdAt := strings.ReplaceAll(strings.ReplaceAll(time.Now().Format(time.Stamp), " ", "_"), ":", "_")
-	fileName := fmt.Sprintf("report_userID_%s_%s.csv", userID, createdAt)
-	err = os.MkdirAll(reportPath, 0744)
-	if err != nil && os.IsExist(err) {
-		return "", err
-	}
-	err = os.WriteFile(reportPath+fileName, b, 0744)
-	if err != nil {
-		return "", err
-	}
-
-	absPath, err := filepath.Abs(reportPath + fileName)
-	if err != nil {
-		return "", err
-	}
-
-	return absPath, nil
 }
 
 func NewService(logs *logger.Logger, storage Storage) http.Service {

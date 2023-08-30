@@ -1,6 +1,6 @@
 storage:
   postgresql:
-    host: 0.0.0.0 #postgres
+    host: postgres #0.0.0.0
     port: 5432
     database: postgres
     user: postgres

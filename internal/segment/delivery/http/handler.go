@@ -16,15 +16,14 @@ import (
 )
 
 const (
-	segmentsURL       = "/api/segments"
-	usersToSegments   = "/api/segments/"
-	id                = "user_id"
-	activeSegmentsURL = "/api/segments/:user_id"
-	csvReport         = "/api/reports/:user_id"
-	csvReportOriginal = "/api/original_reports/:user_id"
-	swagger           = "/swagger/*filepath"
-	cronURL           = "/api/segments/ttl"
-	csvReportDownload = "/api/reports/download/:user_id"
+	segmentsURL                = "/api/segments"
+	usersToSegments            = "/api/segments/"
+	id                         = "user_id"
+	activeSegmentsURL          = "/api/segments/:user_id"
+	swagger                    = "/swagger/*filepath"
+	cronURL                    = "/api/segments/ttl"
+	csvReportDownload          = "/api/reports/download/:user_id"
+	csvReportOptimizedDownload = "/api/reports/optimized/download/:user_id"
 )
 
 //go:generate go run github.com/vektra/mockery/v2@v2.33.0 --name Service
@@ -33,10 +32,9 @@ type Service interface {
 	Delete(ctx context.Context, dto segment.ToDeleteSegmentDTO) error
 	EditUserToSegments(ctx context.Context, dto segment.ToUpdateUsersSegmentsDTO) error
 	GetActiveSegments(ctx context.Context, userID string) ([]segment.ActiveSegments, error)
-	GetUserHistoryOptimized(ctx context.Context, userID string, dto segment.ReportDateDTO) (string, error)
-	GetUserHistoryOriginal(ctx context.Context, userID string, dto segment.ReportDateDTO) (string, error)
 	CheckSegmentsTTL(ctx context.Context) error
 	MakeCSVUserReport(ctx context.Context, userID string, dto segment.ReportDateDTO) (segment.ReportFile, error)
+	MakeCSVUserReportOptimized(ctx context.Context, userID string, dto segment.ReportDateDTO) (segment.ReportFile, error)
 }
 
 type handler struct {
@@ -49,10 +47,9 @@ func (h *handler) Register(r *httprouter.Router) {
 	r.HandlerFunc(http.MethodDelete, segmentsURL, apierror.Middleware(h.DeleteSegment))
 	r.HandlerFunc(http.MethodPut, usersToSegments, apierror.Middleware(h.EditUserSegments))
 	r.HandlerFunc(http.MethodGet, activeSegmentsURL, apierror.Middleware(h.GetActiveSegmentFromUser))
-	r.HandlerFunc(http.MethodPost, csvReport, apierror.Middleware(h.GetCSVReport))
-	r.HandlerFunc(http.MethodPost, csvReportOriginal, apierror.Middleware(h.GetOriginalCSVReport))
-	r.HandlerFunc(http.MethodPost, cronURL, apierror.Middleware(h.CronJobSegments))
 	r.HandlerFunc(http.MethodGet, csvReportDownload, apierror.Middleware(h.DownloadCSVUserReport))
+	r.HandlerFunc(http.MethodGet, csvReportOptimizedDownload, apierror.Middleware(h.DownloadCSVUserReportOptimized))
+	r.HandlerFunc(http.MethodPost, cronURL, apierror.Middleware(h.CronJobSegments))
 	r.HandlerFunc(http.MethodGet, swagger, httpSwagger.WrapHandler)
 }
 
@@ -141,9 +138,6 @@ func (h *handler) DeleteSegment(w http.ResponseWriter, r *http.Request) error {
 func (h *handler) EditUserSegments(w http.ResponseWriter, r *http.Request) error {
 	h.logs.Info("Add segments to user")
 	w.Header().Set("Content-Type", "application/json")
-	// TODO: parse userID from URL or JSON?
-	//params := r.Context().Value(httprouter.ParamsKey).(httprouter.Params)
-	//userID := params.ByName(id)
 
 	var segmentsDTO segment.ToUpdateUsersSegmentsDTO
 	defer r.Body.Close()
@@ -211,7 +205,7 @@ func (h *handler) GetActiveSegmentFromUser(w http.ResponseWriter, r *http.Reques
 // @Failure 500 {object} apierror.ApiError
 // @Failure default {object} apierror.ApiError
 // @Router /api/reports/{userID} [post]
-func (h *handler) GetCSVReport(w http.ResponseWriter, r *http.Request) error {
+func (h *handler) DownloadCSVUserReportOptimized(w http.ResponseWriter, r *http.Request) error {
 	h.logs.Info("Get CSV report")
 	w.Header().Set("Content-Type", "application/json")
 
@@ -219,60 +213,38 @@ func (h *handler) GetCSVReport(w http.ResponseWriter, r *http.Request) error {
 	userID := params.ByName(id)
 
 	var dateDTO segment.ReportDateDTO
-	defer r.Body.Close()
-	h.logs.Debug("mapping json to DTO")
-	if err := json.NewDecoder(r.Body).Decode(&dateDTO); err != nil {
-		return fmt.Errorf("failled to decode body from json body due error:%w", err)
-	}
+	dateDTO.Month = r.URL.Query().Get("month")
+	dateDTO.Year = r.URL.Query().Get("year")
+	file, err := h.service.MakeCSVUserReportOptimized(r.Context(), userID, dateDTO)
 
-	reportLink, err := h.service.GetUserHistoryOptimized(r.Context(), userID, dateDTO)
 	if err != nil {
 		return err
 	}
-	linkJSON := responses.New(fmt.Sprintf("report: %s", reportLink),
-		"200 OK", "Avito_Segment_Service-000201")
-	w.Write(linkJSON.Marshal())
+	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s", file.Name))
+	w.Header().Set("Content-Type", "application/octet-stream")
+	w.Write(file.Data)
 	w.WriteHeader(http.StatusOK)
 	return nil
 }
 
-// @Summary Get user's report v1
-// @Tags reports
-// @Description Receiving CSV report with all user actions with segments by user ID, year and month.
-// @Description Report v1 exist according to the terms of reference about CSV reports
-// @ID get-report-v1
-// @Accept  json
-// @Produce  json
-// @Param userID path int true "userID"
-// @Param input body segment.ReportDateDTO true "Month and year as the beginning of the time period for the CSV report"
-// @Success 200 {string} linkToFile
-// @Failure 400,404 {object} apierror.ApiError
-// @Failure 500 {object} apierror.ApiError
-// @Failure default {object} apierror.ApiError
-// @Router /api/original_reports/{userID} [post]
-func (h *handler) GetOriginalCSVReport(w http.ResponseWriter, r *http.Request) error {
-	h.logs.Info("Get CSV report")
-	w.Header().Set("Content-Type", "application/json")
+func (h *handler) DownloadCSVUserReport(w http.ResponseWriter, r *http.Request) error {
 
 	params := r.Context().Value(httprouter.ParamsKey).(httprouter.Params)
 	userID := params.ByName(id)
 
 	var dateDTO segment.ReportDateDTO
-	defer r.Body.Close()
-	h.logs.Debug("mapping json to DTO")
-	if err := json.NewDecoder(r.Body).Decode(&dateDTO); err != nil {
-		return fmt.Errorf("failled to decode body from json body due error:%w", err)
-	}
+	dateDTO.Month = r.URL.Query().Get("month")
+	dateDTO.Year = r.URL.Query().Get("year")
+	file, err := h.service.MakeCSVUserReport(r.Context(), userID, dateDTO)
 
-	reportLink, err := h.service.GetUserHistoryOriginal(r.Context(), userID, dateDTO)
 	if err != nil {
 		return err
 	}
-
-	linkJSON := responses.New(fmt.Sprintf("report: %s", reportLink),
-		"200 OK", "Avito_Segment_Service-000201")
-	w.Write(linkJSON.Marshal())
+	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s", file.Name))
+	w.Header().Set("Content-Type", "application/octet-stream")
+	w.Write(file.Data)
 	w.WriteHeader(http.StatusOK)
+
 	return nil
 }
 
@@ -297,27 +269,6 @@ func (h *handler) CronJobSegments(w http.ResponseWriter, r *http.Request) error 
 	h.logs.Info("Cron job done")
 	w.Write(responses.OK.Marshal())
 	w.WriteHeader(http.StatusOK)
-	return nil
-}
-
-func (h *handler) DownloadCSVUserReport(w http.ResponseWriter, r *http.Request) error {
-
-	params := r.Context().Value(httprouter.ParamsKey).(httprouter.Params)
-	userID := params.ByName(id)
-
-	var dateDTO segment.ReportDateDTO
-	dateDTO.Month = r.URL.Query().Get("month")
-	dateDTO.Year = r.URL.Query().Get("year")
-	file, err := h.service.MakeCSVUserReport(r.Context(), userID, dateDTO)
-
-	if err != nil {
-		return err
-	}
-	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s", file.Name))
-	w.Header().Set("Content-Type", "application/octet-stream")
-	w.Write(file.Data)
-	w.WriteHeader(http.StatusOK)
-
 	return nil
 }
 

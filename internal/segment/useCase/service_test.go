@@ -7,111 +7,9 @@ import (
 	"github.com/POMBNK/avito_test_task/internal/segment/mocks"
 	"github.com/POMBNK/avito_test_task/pkg/logger"
 	"github.com/stretchr/testify/assert"
-	"os"
-	"path/filepath"
-	"strings"
 	"testing"
 	"time"
 )
-
-func Test_prepareCSVReportOptimized(t *testing.T) {
-	type args struct {
-		reports []segment.BetterCSVReport
-		userID  string
-	}
-	tests := []struct {
-		name    string
-		args    args
-		want    string
-		wantErr bool
-	}{
-		{
-			name: "Test_prepareCSVReport_1",
-			args: args{
-				reports: []segment.BetterCSVReport{
-					{
-						UserID:      "1",
-						SegmentName: "test_name1",
-						Active:      true,
-						CreatedAt:   time.Now(),
-						DeletedAt:   nil,
-					},
-					{
-						UserID:      "1",
-						SegmentName: "TESTNAME2",
-						Active:      true,
-						CreatedAt:   time.Now(),
-						DeletedAt:   nil,
-					},
-				},
-				userID: "1",
-			},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-
-			createdAt := strings.ReplaceAll(strings.ReplaceAll(time.Now().Format(time.Stamp), " ", "_"), ":", "_")
-			fileName := fmt.Sprintf("report_userID_%s_%s.csv", tt.args.userID, createdAt)
-			expectedFilePath, _ := filepath.Abs(reportPath + fileName)
-			absPath, err := prepareCSVReportOptimized(tt.args.reports, tt.args.userID)
-
-			assert.NoError(t, err)
-			assert.Equal(t, expectedFilePath, absPath)
-			err = os.Remove(absPath)
-			assert.NoError(t, err)
-		})
-	}
-}
-
-func Test_prepareCSVReportsOriginal(t *testing.T) {
-	type args struct {
-		reports []segment.CSVReport
-		userID  string
-	}
-	tests := []struct {
-		name    string
-		args    args
-		want    string
-		wantErr bool
-	}{
-		{
-			name: "Test_prepareCSVReport_1",
-			args: args{
-				reports: []segment.CSVReport{
-					{
-						UserID:      "1",
-						SegmentName: "test_name1",
-						Action:      "true",
-						Date:        time.Now(),
-					},
-					{
-						UserID:      "1",
-						SegmentName: "TESTNAME2",
-						Action:      "false",
-						Date:        time.Now(),
-					},
-				},
-				userID: "1",
-			},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-
-			createdAt := strings.ReplaceAll(strings.ReplaceAll(time.Now().Format(time.Stamp), " ", "_"), ":", "_")
-			fileName := fmt.Sprintf("report_userID_%s_%s.csv", tt.args.userID, createdAt)
-
-			expectedFilePath, _ := filepath.Abs(reportPath + fileName)
-			absPath, err := prepareCSVReportsOriginal(tt.args.reports, tt.args.userID)
-
-			assert.NoError(t, err)
-			assert.Equal(t, expectedFilePath, absPath)
-			err = os.Remove(absPath)
-			assert.NoError(t, err)
-		})
-	}
-}
 
 func Test_service_Create(t *testing.T) {
 
@@ -372,7 +270,7 @@ func Test_service_GetActiveSegments(t *testing.T) {
 	}
 }
 
-func Test_service_GetUserHistoryOptimized(t *testing.T) {
+func Test_service_MakeCSVUserReportOptimized(t *testing.T) {
 
 	type args struct {
 		ctx    context.Context
@@ -415,13 +313,13 @@ func Test_service_GetUserHistoryOptimized(t *testing.T) {
 				storage: storage,
 			}
 
-			_, err := s.GetUserHistoryOptimized(tt.args.ctx, tt.args.userID, tt.args.dto)
+			_, err := s.MakeCSVUserReportOptimized(tt.args.ctx, tt.args.userID, tt.args.dto)
 			assert.NoError(t, err)
 		})
 	}
 }
 
-func Test_service_GetUserHistoryOptimized_Failed(t *testing.T) {
+func Test_service_MakeCSVUserReportOptimized_Failed(t *testing.T) {
 
 	type args struct {
 		ctx    context.Context
@@ -456,13 +354,13 @@ func Test_service_GetUserHistoryOptimized_Failed(t *testing.T) {
 				storage: storage,
 			}
 
-			_, err := s.GetUserHistoryOptimized(tt.args.ctx, tt.args.userID, tt.args.dto)
+			_, err := s.MakeCSVUserReportOptimized(tt.args.ctx, tt.args.userID, tt.args.dto)
 			assert.Error(t, err, fmt.Errorf("empty report"))
 		})
 	}
 }
 
-func Test_service_GetUserHistoryOriginal(t *testing.T) {
+func Test_service_MakeCSVUserReport(t *testing.T) {
 	type args struct {
 		ctx    context.Context
 		userID string
@@ -501,13 +399,13 @@ func Test_service_GetUserHistoryOriginal(t *testing.T) {
 			s := &service{
 				storage: storage,
 			}
-			_, err := s.GetUserHistoryOriginal(tt.args.ctx, tt.args.userID, tt.args.dto)
+			_, err := s.MakeCSVUserReport(tt.args.ctx, tt.args.userID, tt.args.dto)
 			assert.NoError(t, err)
 		})
 	}
 }
 
-func Test_service_GetUserHistoryOriginalFailed(t *testing.T) {
+func Test_service_MakeCSVUserReportFailed(t *testing.T) {
 	type args struct {
 		ctx    context.Context
 		userID string
@@ -539,7 +437,7 @@ func Test_service_GetUserHistoryOriginalFailed(t *testing.T) {
 			s := &service{
 				storage: storage,
 			}
-			_, err := s.GetUserHistoryOriginal(tt.args.ctx, tt.args.userID, tt.args.dto)
+			_, err := s.MakeCSVUserReport(tt.args.ctx, tt.args.userID, tt.args.dto)
 			assert.Error(t, err, fmt.Errorf("empty report"))
 		})
 	}
