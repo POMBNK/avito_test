@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	segmentHttp "github.com/POMBNK/avito_test_task/internal/segment/delivery/http"
 	segmentRepository "github.com/POMBNK/avito_test_task/internal/segment/repository"
 	segmentUseCase "github.com/POMBNK/avito_test_task/internal/segment/useCase"
@@ -55,7 +54,7 @@ func main() {
 func start(logs *logger.Logger, router *httprouter.Router, cfg *config.Config) {
 	var listener net.Listener
 	var listenErr error
-	listener, listenErr = net.Listen("tcp", fmt.Sprintf("%s:%s", "127.0.0.1", "8080"))
+	listener, listenErr = net.Listen("tcp", ":8080")
 	if listenErr != nil {
 		logs.Fatal(listenErr)
 	}
