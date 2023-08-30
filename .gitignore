@@ -2,3 +2,4 @@
 logs
 cmd/draw
 reports/
+.env

@@ -24,6 +24,9 @@ import (
 // @host 127.0.0.1:8080
 // @BasePath /
 
+// TODO: percent validation
+// TODO: segment name validation
+// TODO: return err if ttl already exist
 func main() {
 	logs := logger.GetLogger()
 	logs.Println("Logger initialized.")
@@ -32,10 +35,11 @@ func main() {
 	cfg := config.GetCfg()
 	logs.Println("Config initialized.")
 
-	client, err := postgresql.NewClient(context.Background(), cfg)
+	client, err := postgresql.NewClient(context.Background(), 3, cfg)
 	if err != nil {
 		logs.Fatalln(err)
 	}
+
 	//TODO: change to fiber or echo
 	logs.Println("Router initialization...")
 	router := httprouter.New()

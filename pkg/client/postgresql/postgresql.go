@@ -8,6 +8,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"log"
 	"time"
 )
 
@@ -19,19 +20,28 @@ type Client interface {
 	BeginTx(ctx context.Context, txOptions pgx.TxOptions) (pgx.Tx, error)
 }
 
-func NewClient(ctx context.Context, cfg *config.Config) (*pgxpool.Pool, error) {
+func NewClient(ctx context.Context, maxAttempts int, cfg *config.Config) (*pgxpool.Pool, error) {
 	var pool *pgxpool.Pool
 	var err error
 	data := cfg.Storage.Postgresql
-	dns := fmt.Sprintf("postgresql://%s:%s@%s:%s/%s", data.User, data.Password, data.Host, data.Port, data.Database)
-	utils.Again(func() error {
+	dns := fmt.Sprintf("postgres://%s:%s@%s:%s/%s", data.User, data.Password, data.Host, data.Port, data.Database)
+	err = utils.Again(func() error {
 		ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 		defer cancel()
+
 		pool, err = pgxpool.New(ctx, dns)
 		if err != nil {
 			return err
 		}
+
+		err = pool.Ping(ctx)
+		if err != nil {
+			return err
+		}
 		return nil
-	}, 5, 5*time.Second)
+	}, maxAttempts, 5*time.Second)
+	if err != nil {
+		log.Fatal("tries limit exceeded")
+	}
 	return pool, nil
 }
