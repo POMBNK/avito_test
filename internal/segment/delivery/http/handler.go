@@ -24,6 +24,7 @@ const (
 	csvReportOriginal = "/api/original_reports/:user_id"
 	swagger           = "/swagger/*filepath"
 	cronURL           = "/api/segments/ttl"
+	csvReportDownload = "/api/reports/download/:user_id"
 )
 
 //go:generate go run github.com/vektra/mockery/v2@v2.33.0 --name Service
@@ -35,6 +36,7 @@ type Service interface {
 	GetUserHistoryOptimized(ctx context.Context, userID string, dto segment.ReportDateDTO) (string, error)
 	GetUserHistoryOriginal(ctx context.Context, userID string, dto segment.ReportDateDTO) (string, error)
 	CheckSegmentsTTL(ctx context.Context) error
+	MakeCSVUserReport(ctx context.Context, userID string, dto segment.ReportDateDTO) (segment.ReportFile, error)
 }
 
 type handler struct {
@@ -50,6 +52,7 @@ func (h *handler) Register(r *httprouter.Router) {
 	r.HandlerFunc(http.MethodPost, csvReport, apierror.Middleware(h.GetCSVReport))
 	r.HandlerFunc(http.MethodPost, csvReportOriginal, apierror.Middleware(h.GetOriginalCSVReport))
 	r.HandlerFunc(http.MethodPost, cronURL, apierror.Middleware(h.CronJobSegments))
+	r.HandlerFunc(http.MethodGet, csvReportDownload, apierror.Middleware(h.DownloadCSVUserReport))
 	r.HandlerFunc(http.MethodGet, swagger, httpSwagger.WrapHandler)
 }
 
@@ -294,6 +297,27 @@ func (h *handler) CronJobSegments(w http.ResponseWriter, r *http.Request) error 
 	h.logs.Info("Cron job done")
 	w.Write(responses.OK.Marshal())
 	w.WriteHeader(http.StatusOK)
+	return nil
+}
+
+func (h *handler) DownloadCSVUserReport(w http.ResponseWriter, r *http.Request) error {
+
+	params := r.Context().Value(httprouter.ParamsKey).(httprouter.Params)
+	userID := params.ByName(id)
+
+	var dateDTO segment.ReportDateDTO
+	dateDTO.Month = r.URL.Query().Get("month")
+	dateDTO.Year = r.URL.Query().Get("year")
+	file, err := h.service.MakeCSVUserReport(r.Context(), userID, dateDTO)
+
+	if err != nil {
+		return err
+	}
+	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s", file.Name))
+	w.Header().Set("Content-Type", "application/octet-stream")
+	w.Write(file.Data)
+	w.WriteHeader(http.StatusOK)
+
 	return nil
 }
 

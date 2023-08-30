@@ -139,7 +139,7 @@ func (s *service) GetUserHistoryOptimized(ctx context.Context, userID string, dt
 		return "", fmt.Errorf("empty report")
 	}
 
-	link, err := prepareCSVReport(reports, userID)
+	link, err := prepareCSVReportOptimized(reports, userID)
 	if err != nil {
 		return "", err
 	}
@@ -162,7 +162,7 @@ func (s *service) GetUserHistoryOriginal(ctx context.Context, userID string, dto
 		return "", fmt.Errorf("empty report")
 	}
 
-	link, err := prepareOriginalCSVReports(reports, userID)
+	link, err := prepareCSVReportsOriginal(reports, userID)
 	if err != nil {
 		return "", err
 	}
@@ -170,11 +170,40 @@ func (s *service) GetUserHistoryOriginal(ctx context.Context, userID string, dto
 	return link, nil
 }
 
+func (s *service) MakeCSVUserReport(ctx context.Context, userID string, dto segment.ReportDateDTO) (segment.ReportFile, error) {
+	var newReport segment.ReportFile
+	intYear, err := strconv.Atoi(dto.Year)
+	if err != nil {
+		return segment.ReportFile{}, err
+	}
+	timestampz, err := utils.MapToTimestampz(dto.Month, intYear)
+
+	reports, err := s.storage.GetUserHistoryOriginal(ctx, userID, timestampz)
+	if err != nil {
+		return segment.ReportFile{}, err
+	}
+	if len(reports) == 0 {
+		return segment.ReportFile{}, fmt.Errorf("empty report")
+	}
+
+	b, err := csvutil.Marshal(reports)
+	if err != nil {
+		return segment.ReportFile{}, err
+	}
+	createdAt := strings.ReplaceAll(strings.ReplaceAll(time.Now().Format(time.Stamp), " ", "_"), ":", "_")
+	fileName := fmt.Sprintf("report_userID_%s_%s.csv", userID, createdAt)
+
+	newReport.Data = b
+	newReport.Name = fileName
+
+	return newReport, nil
+}
+
 func (s *service) CheckSegmentsTTL(ctx context.Context) error {
 	return s.storage.CheckSegmentsTTL(ctx)
 }
 
-func prepareCSVReport(reports []segment.BetterCSVReport, userID string) (string, error) {
+func prepareCSVReportOptimized(reports []segment.BetterCSVReport, userID string) (string, error) {
 	b, err := csvutil.Marshal(reports)
 	if err != nil {
 		return "", err
@@ -199,7 +228,7 @@ func prepareCSVReport(reports []segment.BetterCSVReport, userID string) (string,
 	return absPath, nil
 }
 
-func prepareOriginalCSVReports(reports []segment.CSVReport, userID string) (string, error) {
+func prepareCSVReportsOriginal(reports []segment.CSVReport, userID string) (string, error) {
 	b, err := csvutil.Marshal(reports)
 	if err != nil {
 		return "", err

@@ -39,7 +39,6 @@ func main() {
 		logs.Fatalln(err)
 	}
 
-	//TODO: change to fiber or echo
 	logs.Println("Router initialization...")
 	router := httprouter.New()
 	logs.Println("Router initialized.")

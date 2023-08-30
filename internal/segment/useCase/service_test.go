@@ -14,7 +14,7 @@ import (
 	"time"
 )
 
-func Test_prepareCSVReport(t *testing.T) {
+func Test_prepareCSVReportOptimized(t *testing.T) {
 	type args struct {
 		reports []segment.BetterCSVReport
 		userID  string
@@ -54,7 +54,7 @@ func Test_prepareCSVReport(t *testing.T) {
 			createdAt := strings.ReplaceAll(strings.ReplaceAll(time.Now().Format(time.Stamp), " ", "_"), ":", "_")
 			fileName := fmt.Sprintf("report_userID_%s_%s.csv", tt.args.userID, createdAt)
 			expectedFilePath, _ := filepath.Abs(reportPath + fileName)
-			absPath, err := prepareCSVReport(tt.args.reports, tt.args.userID)
+			absPath, err := prepareCSVReportOptimized(tt.args.reports, tt.args.userID)
 
 			assert.NoError(t, err)
 			assert.Equal(t, expectedFilePath, absPath)
@@ -64,7 +64,7 @@ func Test_prepareCSVReport(t *testing.T) {
 	}
 }
 
-func Test_prepareOriginalCSVReports(t *testing.T) {
+func Test_prepareCSVReportsOriginal(t *testing.T) {
 	type args struct {
 		reports []segment.CSVReport
 		userID  string
@@ -103,7 +103,7 @@ func Test_prepareOriginalCSVReports(t *testing.T) {
 			fileName := fmt.Sprintf("report_userID_%s_%s.csv", tt.args.userID, createdAt)
 
 			expectedFilePath, _ := filepath.Abs(reportPath + fileName)
-			absPath, err := prepareOriginalCSVReports(tt.args.reports, tt.args.userID)
+			absPath, err := prepareCSVReportsOriginal(tt.args.reports, tt.args.userID)
 
 			assert.NoError(t, err)
 			assert.Equal(t, expectedFilePath, absPath)

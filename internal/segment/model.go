@@ -38,3 +38,8 @@ type CSVReport struct {
 	Action      string    `json:"action"`
 	Date        time.Time `json:"date"`
 }
+
+type ReportFile struct {
+	Data []byte
+	Name string
+}
