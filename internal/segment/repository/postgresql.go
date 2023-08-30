@@ -48,10 +48,9 @@ func (d *postgresDB) Create(ctx context.Context, segment segment.Segment) (strin
 }
 
 func (d *postgresDB) AddToRandomUsers(ctx context.Context, segment segment.Segment, percent int) error {
-	//TODO: Add id to user model
 	q := fmt.Sprintf(`SELECT id FROM users
-			ORDER BY RANDOM()
-    		LIMIT (SELECT COUNT(id) FROM users) * 0.%d`, percent)
+								ORDER BY RANDOM()
+									LIMIT (SELECT COUNT(id) FROM users) * GREATEST((1./ (SELECT COUNT(id) FROM users)),%d/100)`, percent)
 
 	ctx, cancel := context.WithTimeout(ctx, time.Second*5)
 	defer cancel()
@@ -148,28 +147,6 @@ func (d *postgresDB) AddUserToSegments(ctx context.Context, segmentsUser segment
 	if err != nil {
 		return err
 	}
-	// for loving memory...
-	//var del_after string
-	//var stub string
-	//
-	//if deleteAfter == "" {
-	//	del_after = ""
-	//	stub = ""
-	//} else {
-	//	del_after = ", del_after"
-	//	stub = fmt.Sprintf(",CAST('%s' AS TIMESTAMPTZ ) as del_after", deleteAfter)
-	//}
-	//
-	//q := fmt.Sprintf(`
-	//		INSERT INTO user_segment(segment_id, user_id, ACTIVE %s)
-	//		WITH data AS (SELECT id AS segment_id, %d AS user_id, TRUE AS active
-	//			 %s FROM segment WHERE name = '%s')
-	//		SELECT segment_id, user_id, active %s
-	//		FROM data
-	//		WHERE NOT EXISTS (SELECT * FROM user_segment
-	//		                           WHERE (user_id = (SELECT user_id from DATA)
-	//		                                      AND segment_id = (SELECT segment_id from DATA) AND active = TRUE))`,
-	//	del_after, intUserID, stub, segmentName, del_after)
 
 	var q string
 	if deleteAfter == "" {

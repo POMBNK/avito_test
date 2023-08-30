@@ -3,7 +3,7 @@ package segment
 // Data Transfer Object to transport using models
 type ToCreateSegmentDTO struct {
 	Name    string `json:"name"`
-	Percent int    `json:"percent"`
+	Percent int    `json:"percent,omitempty"`
 }
 
 type ToDeleteSegmentDTO struct {

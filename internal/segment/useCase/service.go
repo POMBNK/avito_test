@@ -64,7 +64,9 @@ func (s *service) Create(ctx context.Context, dto segment.ToCreateSegmentDTO) (s
 	if err != nil {
 		return "", err
 	}
-	//TODO Check negative percent scenario and garant >=1
+	if dto.Percent < 0 {
+		return "", fmt.Errorf("percent must be greater than 0")
+	}
 	if dto.Percent != 0 {
 		err = s.storage.AddToRandomUsers(ctx, segmentUnit, dto.Percent)
 		if err != nil {
