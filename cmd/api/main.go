@@ -5,13 +5,11 @@ import (
 	segmentHttp "github.com/POMBNK/avito_test_task/internal/segment/delivery/http"
 	segmentRepository "github.com/POMBNK/avito_test_task/internal/segment/repository"
 	segmentUseCase "github.com/POMBNK/avito_test_task/internal/segment/useCase"
+	"github.com/POMBNK/avito_test_task/internal/server"
 	"github.com/POMBNK/avito_test_task/pkg/client/postgresql"
 	"github.com/POMBNK/avito_test_task/pkg/config"
 	"github.com/POMBNK/avito_test_task/pkg/logger"
 	"github.com/julienschmidt/httprouter"
-	"net"
-	"net/http"
-	"time"
 )
 
 // @title Avito Segment Service API
@@ -23,9 +21,6 @@ import (
 // @host 127.0.0.1:8080
 // @BasePath /
 
-// TODO: percent validation
-// TODO: segment name validation
-// TODO: return err if ttl already exist
 func main() {
 	logs := logger.GetLogger()
 	logs.Println("Logger initialized.")
@@ -47,24 +42,6 @@ func main() {
 	segmentHandler := segmentHttp.NewHandler(logs, segmentService)
 	segmentHandler.Register(router)
 
-	start(logs, router, cfg)
-}
-
-func start(logs *logger.Logger, router *httprouter.Router, cfg *config.Config) {
-	var listener net.Listener
-	var listenErr error
-	listener, listenErr = net.Listen("tcp", ":8080")
-	if listenErr != nil {
-		logs.Fatal(listenErr)
-	}
-
-	server := http.Server{
-		Handler:      router,
-		WriteTimeout: 15 * time.Second,
-		ReadTimeout:  15 * time.Second,
-	}
-
-	if err := server.Serve(listener); err != nil {
-		logs.Fatalf("Server error:%s", err)
-	}
+	srv := server.New(logs, router, cfg)
+	srv.Start()
 }

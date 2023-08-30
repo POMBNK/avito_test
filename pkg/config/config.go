@@ -8,6 +8,9 @@ import (
 )
 
 type Config struct {
+	Server struct {
+		Port string `yaml:"port"`
+	}
 	Storage struct {
 		Postgresql Postgresql `json:"postgresql"`
 	} `yaml:"storage"`

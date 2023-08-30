@@ -3,6 +3,7 @@ package useCase
 import (
 	"context"
 	"fmt"
+	"github.com/POMBNK/avito_test_task/internal/apierror"
 	"github.com/POMBNK/avito_test_task/internal/segment"
 	"github.com/POMBNK/avito_test_task/internal/segment/delivery/http"
 	"github.com/POMBNK/avito_test_task/pkg/logger"
@@ -12,8 +13,6 @@ import (
 	"strings"
 	"time"
 )
-
-const reportPath = "reports/csv/"
 
 //go:generate go run github.com/vektra/mockery/v2@v2.33.0 --name Storage
 type Storage interface {
@@ -59,13 +58,15 @@ type service struct {
 
 func (s *service) Create(ctx context.Context, dto segment.ToCreateSegmentDTO) (string, error) {
 	segmentUnit := segment.CreateSegmentDto(dto)
-
+	if dto.Name == "" {
+		return "", apierror.New("segment name is empty", "validation err", "Avito_Segment_Service-000401")
+	}
 	ID, err := s.storage.Create(ctx, segmentUnit)
 	if err != nil {
 		return "", err
 	}
 	if dto.Percent < 0 {
-		return "", fmt.Errorf("percent must be greater than 0")
+		return "", apierror.New("percent must be positive", "validation err", "Avito_Segment_Service-000402")
 	}
 	if dto.Percent != 0 {
 		err = s.storage.AddToRandomUsers(ctx, segmentUnit, dto.Percent)
@@ -138,7 +139,7 @@ func (s *service) MakeCSVUserReportOptimized(ctx context.Context, userID string,
 		return segment.ReportFile{}, err
 	}
 	if len(reports) == 0 {
-		return segment.ReportFile{}, fmt.Errorf("empty report")
+		return segment.ReportFile{}, apierror.New("empty report", "empty report", "Avito_Segment_Service-000403")
 	}
 
 	b, err := csvutil.Marshal(reports)
@@ -168,7 +169,7 @@ func (s *service) MakeCSVUserReport(ctx context.Context, userID string, dto segm
 		return segment.ReportFile{}, err
 	}
 	if len(reports) == 0 {
-		return segment.ReportFile{}, fmt.Errorf("empty report")
+		return segment.ReportFile{}, apierror.New("empty report", "empty report", "Avito_Segment_Service-000403")
 	}
 
 	b, err := csvutil.Marshal(reports)
