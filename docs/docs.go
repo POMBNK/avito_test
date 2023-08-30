@@ -20,14 +20,11 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/api/original_reports/{userID}": {
-            "post": {
-                "description": "Receiving CSV report with all user actions with segments by user ID, year and month.\nReport v1 exist according to the terms of reference about CSV reports",
-                "consumes": [
-                    "application/json"
-                ],
+        "/api/reports/download/{userID}": {
+            "get": {
+                "description": "Receiving CSV report with all user actions with segments by user ID, year and month.\nReport v1 created by original requirements.",
                 "produces": [
-                    "application/json"
+                    "application/octet-stream"
                 ],
                 "tags": [
                     "reports"
@@ -43,21 +40,23 @@ const docTemplate = `{
                         "required": true
                     },
                     {
-                        "description": "Month and year as the beginning of the time period for the CSV report",
-                        "name": "input",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/segment.ReportDateDTO"
-                        }
+                        "type": "string",
+                        "description": "Month as the beginning of the time period for the CSV report",
+                        "name": "month",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Year as the beginning of the time period for the CSV report",
+                        "name": "year",
+                        "in": "query",
+                        "required": true
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "string"
-                        }
+                        "description": "OK"
                     },
                     "400": {
                         "description": "Bad Request",
@@ -86,14 +85,11 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/reports/{userID}": {
-            "post": {
+        "/api/reports/optimized/download/{userID}": {
+            "get": {
                 "description": "Receiving CSV report with all user actions with segments by user ID, year and month.\nReport v2 has better query and format to read.",
-                "consumes": [
-                    "application/json"
-                ],
                 "produces": [
-                    "application/json"
+                    "application/octet-stream"
                 ],
                 "tags": [
                     "reports"
@@ -109,21 +105,23 @@ const docTemplate = `{
                         "required": true
                     },
                     {
-                        "description": "Month and year as the beginning of the time period for the CSV report",
-                        "name": "input",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/segment.ReportDateDTO"
-                        }
+                        "type": "string",
+                        "description": "Month as the beginning of the time period for the CSV report",
+                        "name": "month",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Year as the beginning of the time period for the CSV report",
+                        "name": "year",
+                        "in": "query",
+                        "required": true
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "string"
-                        }
+                        "description": "OK"
                     },
                     "400": {
                         "description": "Bad Request",
@@ -154,7 +152,7 @@ const docTemplate = `{
         },
         "/api/segments": {
             "put": {
-                "description": "Adds and removes tags to the user",
+                "description": "Adds already created segments to users and removes segments from the user",
                 "consumes": [
                     "application/json"
                 ],
@@ -168,18 +166,21 @@ const docTemplate = `{
                 "operationId": "edit-segment",
                 "parameters": [
                     {
-                        "description": "User's segment info",
+                        "description": "segment to add/delete info",
                         "name": "input",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/segment.SegmentsUsers"
+                            "$ref": "#/definitions/segment.ToUpdateUsersSegmentsDTO"
                         }
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK"
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ApiResponse"
+                        }
                     },
                     "400": {
                         "description": "Bad Request",
@@ -233,7 +234,10 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "201": {
-                        "description": "Created"
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ApiResponse"
+                        }
                     },
                     "400": {
                         "description": "Bad Request",
@@ -286,8 +290,11 @@ const docTemplate = `{
                     }
                 ],
                 "responses": {
-                    "204": {
-                        "description": "No Content"
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ApiResponse"
+                        }
                     },
                     "400": {
                         "description": "Bad Request",
@@ -361,9 +368,6 @@ const docTemplate = `{
         "/api/segments/{userID}": {
             "get": {
                 "description": "Get all active user's segments by userID",
-                "consumes": [
-                    "application/json"
-                ],
                 "produces": [
                     "application/json"
                 ],
@@ -434,6 +438,20 @@ const docTemplate = `{
                 }
             }
         },
+        "responses.ApiResponse": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "developer_msg": {
+                    "type": "string"
+                }
+            }
+        },
         "segment.ActiveSegments": {
             "type": "object",
             "properties": {
@@ -445,23 +463,28 @@ const docTemplate = `{
                 }
             }
         },
-        "segment.ReportDateDTO": {
+        "segment.ToCreateSegmentDTO": {
             "type": "object",
             "properties": {
-                "month": {
+                "name": {
                     "type": "string"
                 },
-                "year": {
+                "percent": {
+                    "type": "integer"
+                }
+            }
+        },
+        "segment.ToDeleteSegmentDTO": {
+            "type": "object",
+            "properties": {
+                "name": {
                     "type": "string"
                 }
             }
         },
-        "segment.SegmentsUsers": {
+        "segment.ToUpdateUsersSegmentsDTO": {
             "type": "object",
             "properties": {
-                "ID": {
-                    "type": "string"
-                },
                 "add": {
                     "type": "array",
                     "items": {
@@ -483,25 +506,6 @@ const docTemplate = `{
                     }
                 },
                 "userID": {
-                    "type": "string"
-                }
-            }
-        },
-        "segment.ToCreateSegmentDTO": {
-            "type": "object",
-            "properties": {
-                "name": {
-                    "type": "string"
-                },
-                "percent": {
-                    "type": "integer"
-                }
-            }
-        },
-        "segment.ToDeleteSegmentDTO": {
-            "type": "object",
-            "properties": {
-                "name": {
                     "type": "string"
                 }
             }

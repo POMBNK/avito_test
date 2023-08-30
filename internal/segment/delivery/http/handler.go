@@ -60,7 +60,7 @@ func (h *handler) Register(r *httprouter.Router) {
 // @Accept  json
 // @Produce  json
 // @Param input body segment.ToCreateSegmentDTO true "segment info"
-// @Success 201
+// @Success 201 {object} responses.ApiResponse
 // @Failure 400,404 {object} apierror.ApiError
 // @Failure 500 {object} apierror.ApiError
 // @Failure default {object} apierror.ApiError
@@ -96,7 +96,7 @@ func (h *handler) CreateSegment(w http.ResponseWriter, r *http.Request) error {
 // @Accept  json
 // @Produce  json
 // @Param input body segment.ToDeleteSegmentDTO true "segment info"
-// @Success 204
+// @Success 200 {object} responses.ApiResponse
 // @Failure 400,404 {object} apierror.ApiError
 // @Failure 500 {object} apierror.ApiError
 // @Failure default {object} apierror.ApiError
@@ -125,12 +125,12 @@ func (h *handler) DeleteSegment(w http.ResponseWriter, r *http.Request) error {
 
 // @Summary Edit segments to user
 // @Tags segments
-// @Description Adds and removes tags to the user
+// @Description Adds already created segments to users and removes segments from the user
 // @ID edit-segment
 // @Accept  json
 // @Produce  json
-// @Param input body segment.SegmentsUsers true "User's segment info"
-// @Success 200
+// @Param input body segment.ToUpdateUsersSegmentsDTO true "segment to add/delete info"
+// @Success 200 {object} responses.ApiResponse
 // @Failure 400,404 {object} apierror.ApiError
 // @Failure 500 {object} apierror.ApiError
 // @Failure default {object} apierror.ApiError
@@ -159,7 +159,6 @@ func (h *handler) EditUserSegments(w http.ResponseWriter, r *http.Request) error
 // @Tags segments
 // @Description Get all active user's segments by userID
 // @ID get-active-segments
-// @Accept  json
 // @Produce  json
 // @Param userID path int true "userID"
 // @Success 200 {array} segment.ActiveSegments
@@ -178,7 +177,7 @@ func (h *handler) GetActiveSegmentFromUser(w http.ResponseWriter, r *http.Reques
 	if err != nil {
 		return err
 	}
-	// TODO: change JSON body to url query
+
 	activeSegmentsBytes, err := json.Marshal(activeSegments)
 	if err != nil {
 		return err
@@ -196,15 +195,15 @@ func (h *handler) GetActiveSegmentFromUser(w http.ResponseWriter, r *http.Reques
 // @Description Receiving CSV report with all user actions with segments by user ID, year and month.
 // @Description Report v2 has better query and format to read.
 // @ID get-report-v2
-// @Accept  json
-// @Produce  json
+// @Produce octet-stream
 // @Param userID path int true "userID"
-// @Param input body segment.ReportDateDTO true "Month and year as the beginning of the time period for the CSV report"
-// @Success 200 {string} linkToFile
+// @Param month query string true "Month as the beginning of the time period for the CSV report"
+// @Param year query string true "Year as the beginning of the time period for the CSV report"
+// @Success 200
 // @Failure 400,404 {object} apierror.ApiError
 // @Failure 500 {object} apierror.ApiError
 // @Failure default {object} apierror.ApiError
-// @Router /api/reports/{userID} [post]
+// @Router /api/reports/optimized/download/{userID} [get]
 func (h *handler) DownloadCSVUserReportOptimized(w http.ResponseWriter, r *http.Request) error {
 	h.logs.Info("Get CSV report")
 	w.Header().Set("Content-Type", "application/json")
@@ -227,6 +226,20 @@ func (h *handler) DownloadCSVUserReportOptimized(w http.ResponseWriter, r *http.
 	return nil
 }
 
+// @Summary Get user's report v1
+// @Tags reports
+// @Description Receiving CSV report with all user actions with segments by user ID, year and month.
+// @Description Report v1 created by original requirements.
+// @ID get-report-v1
+// @Produce octet-stream
+// @Param userID path int true "userID"
+// @Param month query string true "Month as the beginning of the time period for the CSV report"
+// @Param year query string true "Year as the beginning of the time period for the CSV report"
+// @Success 200
+// @Failure 400,404 {object} apierror.ApiError
+// @Failure 500 {object} apierror.ApiError
+// @Failure default {object} apierror.ApiError
+// @Router /api/reports/download/{userID} [get]
 func (h *handler) DownloadCSVUserReport(w http.ResponseWriter, r *http.Request) error {
 
 	params := r.Context().Value(httprouter.ParamsKey).(httprouter.Params)

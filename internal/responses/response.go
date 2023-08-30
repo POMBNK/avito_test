@@ -13,7 +13,7 @@ type ApiResponse struct {
 	Code         string `json:"code"`
 }
 
-func (r ApiResponse) Marshal() []byte {
+func (r *ApiResponse) Marshal() []byte {
 	bytes, err := json.Marshal(r)
 	if err != nil {
 		return nil
@@ -22,8 +22,8 @@ func (r ApiResponse) Marshal() []byte {
 	return bytes
 }
 
-func New(description, developerMsg, code string) ApiResponse {
-	return ApiResponse{
+func New(description, developerMsg, code string) *ApiResponse {
+	return &ApiResponse{
 		Description:  description,
 		DeveloperMsg: developerMsg,
 		Code:         code,
