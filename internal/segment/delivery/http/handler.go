@@ -126,6 +126,7 @@ func (h *handler) DeleteSegment(w http.ResponseWriter, r *http.Request) error {
 // @Summary Edit segments to user
 // @Tags segments
 // @Description Adds already created segments to users and removes segments from the user
+// @Description Adds ttl if it needs.
 // @ID edit-segment
 // @Accept  json
 // @Produce  json

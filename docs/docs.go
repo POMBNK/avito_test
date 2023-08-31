@@ -152,7 +152,7 @@ const docTemplate = `{
         },
         "/api/segments": {
             "put": {
-                "description": "Adds already created segments to users and removes segments from the user",
+                "description": "Adds already created segments to users and removes segments from the user\nAdds ttl if it needs.",
                 "consumes": [
                     "application/json"
                 ],

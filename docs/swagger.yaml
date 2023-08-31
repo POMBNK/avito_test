@@ -237,8 +237,9 @@ paths:
     put:
       consumes:
       - application/json
-      description: Adds already created segments to users and removes segments from
-        the user
+      description: |-
+        Adds already created segments to users and removes segments from the user
+        Adds ttl if it needs.
       operationId: edit-segment
       parameters:
       - description: segment to add/delete info
