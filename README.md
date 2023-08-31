@@ -78,7 +78,7 @@
 
 Пример создания сегмента:
 ```curl
-curl --location --request POST 'http://localhost:8080/api/segments/' \
+curl --location --request POST 'http://127.0.0.1:8080/api/segments/' \
 --header 'Content-Type: application/json' \
 --data-raw '{
     "name":"discount90",
@@ -97,7 +97,7 @@ curl --location --request POST 'http://localhost:8080/api/segments/' \
 
 Пример удаление сегмента:
 ```curl
-curl --location --request DELETE 'http://localhost:8080/api/segments/' \
+curl --location --request DELETE 'http://127.0.0.1:8080/api/segments/' \
 --header 'Content-Type: application/json' \
 --data-raw '{
     "name":"discount90"
@@ -117,12 +117,13 @@ curl --location --request DELETE 'http://localhost:8080/api/segments/' \
 ***Внимание***: Опциональное задание №2: "Для реализации TTL В ***метод добавления сегментов*** пользователю передаём время удаления пользователя из сегмента отдельным полем".
 Таким образом, расширяем уже существующий функционал ***опциональным*** полем **"ttl"**.
 
+- Чтобы добавить сегмент пользователю, он должен быть заранее создан.
 - В случае отсутствия необходимости добавлять пользователю время действия(жизни) сегмента - поле опускается.
 - В случае отсутствия необходимости удалять пользователю сегмент - поле опускается.
 
 Пример добавления/ удаления сегментов пользователю/ у пользователя.
 ```curl
-curl --location --request PUT 'http://localhost:8080/api/segments/' \
+curl --location --request PUT 'http://127.0.0.1:8080/api/segments/' \
 --header 'Content-Type: application/json' \
 --data-raw '{
     "userID":"2",
@@ -151,7 +152,7 @@ curl --location --request PUT 'http://localhost:8080/api/segments/' \
 
 Пример получения активных сегментов у пользователя с id=2
 ```curl 
-curl --location --request GET 'http://localhost:8080/api/segments/2' \
+curl --location --request GET 'http://127.0.0.1:8080/api/segments/2' \
 --header 'Content-Type: application/json'
 ```
 
