@@ -22,32 +22,36 @@ type Storage interface {
 	Create(ctx context.Context, segment segment.Segment) (string, error)
 
 	// Delete method.
-	// Update a segment field "active" to false (0).
+	// Update a segment field "active" to false.
 	// The field is not deleted from table:
 	//   - Not to corrupt the data in the user entity;
 	//   - Save statistic data on future.
 	Delete(ctx context.Context, segment segment.Segment) error
 
 	// AddUserToSegments Method for adding a user to a segment.
-	//Accepts a list of (names) of segments to add a user to
+	//Accepts a list of segments names to add a user to
 	AddUserToSegments(ctx context.Context, segmentsUser segment.SegmentsUsers, segmentName, deleteAfter string) error
 
 	// DeleteSegmentFromUser Method for removing a user from segment.
-	//Accepts a list of (names) of segments to delete from user
+	//Accepts a list of (list of segments names to delete from user
 	DeleteSegmentFromUser(ctx context.Context, segmentsUser segment.SegmentsUsers, segmentName string) error
 
-	//GetActiveSegments Method to get active segments from all users
+	//GetActiveSegments Method to get all active segments belongs to user by UserID
 	GetActiveSegments(ctx context.Context, userID string) ([]segment.ActiveSegments, error)
 
 	//IsUserExist check if user already exist
 	IsUserExist(ctx context.Context, segmentsUser segment.SegmentsUsers) error
 
+	// GetUserHistoryOptimized retrieves the user history from the PostgreSQL database in an optimized way
 	GetUserHistoryOptimized(ctx context.Context, userID, timestampz string) ([]segment.BetterCSVReport, error)
 
+	// GetUserHistoryOptimized retrieves the user history from the PostgreSQL database in an original way
 	GetUserHistoryOriginal(ctx context.Context, userID string, timestampz string) ([]segment.CSVReport, error)
 
+	// CheckSegmentsTTL updates the active state of user segments based on their TTL (time-to-live)
 	CheckSegmentsTTL(ctx context.Context) error
 
+	//AddToRandomUsers adds random users to a segment in the database.
 	AddToRandomUsers(ctx context.Context, segment segment.Segment, percent int) error
 }
 

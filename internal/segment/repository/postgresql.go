@@ -20,9 +20,6 @@ type postgresDB struct {
 	client postgresql.Client
 }
 
-// Create method.
-// Create a segment database entries with "name" of segment and "active" boolean flag.
-// Active -> true means segment is active otherwise active -> false.
 func (d *postgresDB) Create(ctx context.Context, segment segment.Segment) (string, error) {
 
 	d.logs.Debug("Check if segment already exist")
@@ -98,11 +95,6 @@ func (d *postgresDB) AddToRandomUsers(ctx context.Context, segment segment.Segme
 	return nil
 }
 
-// Delete method.
-// Update a segment field "active" to false (0).
-// The field is not deleted from table:
-//   - Not to corrupt the data in the user entity;
-//   - Save statistic data on future.
 func (d *postgresDB) Delete(ctx context.Context, segment segment.Segment) error {
 	d.logs.Debug("Removing segment...")
 
@@ -133,9 +125,6 @@ func (d *postgresDB) Delete(ctx context.Context, segment segment.Segment) error 
 	return nil
 }
 
-// TODO: Change docstring
-// AddUserToSegments Method for adding a user to a segment.
-// Accepts a list of (names) of segments to add a user to
 func (d *postgresDB) AddUserToSegments(ctx context.Context, segmentsUser segment.SegmentsUsers, segmentName, deleteAfter string) error {
 
 	existedSegment, err := d.isSegmentExist(ctx, segmentName)
