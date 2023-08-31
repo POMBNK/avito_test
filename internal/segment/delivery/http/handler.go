@@ -103,8 +103,8 @@ func (h *handler) CreateSegment(w http.ResponseWriter, r *http.Request) error {
 // @Router /api/segments [delete]
 func (h *handler) DeleteSegment(w http.ResponseWriter, r *http.Request) error {
 	h.logs.Info("Delete segment")
-
 	w.Header().Set("Content-Type", "application/json")
+	
 	var segmentDTO segment.ToDeleteSegmentDTO
 	defer r.Body.Close()
 	h.logs.Debug("mapping json to DTO")
@@ -206,8 +206,7 @@ func (h *handler) GetActiveSegmentFromUser(w http.ResponseWriter, r *http.Reques
 // @Failure default {object} apierror.ApiError
 // @Router /api/reports/optimized/download/{userID} [get]
 func (h *handler) DownloadCSVUserReportOptimized(w http.ResponseWriter, r *http.Request) error {
-	h.logs.Info("Get CSV report")
-	w.Header().Set("Content-Type", "application/json")
+	h.logs.Info("Get CSV report v2")
 
 	params := r.Context().Value(httprouter.ParamsKey).(httprouter.Params)
 	userID := params.ByName(id)
@@ -242,6 +241,7 @@ func (h *handler) DownloadCSVUserReportOptimized(w http.ResponseWriter, r *http.
 // @Failure default {object} apierror.ApiError
 // @Router /api/reports/download/{userID} [get]
 func (h *handler) DownloadCSVUserReport(w http.ResponseWriter, r *http.Request) error {
+	h.logs.Info("Get CSV report v1")
 
 	params := r.Context().Value(httprouter.ParamsKey).(httprouter.Params)
 	userID := params.ByName(id)
