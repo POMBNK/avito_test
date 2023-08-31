@@ -11,6 +11,7 @@ test:
 	go test -v ./...
 	rm -Rf internal/segment/delivery/http/logs
 	rm -Rf internal/segment/useCase/logs
+.PHONY: test
 
 cover:
 	go test -short -count=1 -race -coverprofile=coverage.out ./...
